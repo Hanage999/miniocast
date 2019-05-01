@@ -35,7 +35,7 @@ func (pref *PodcastPref) Update(ct *minio.Client) {
 
 	items, err := pref.fetchRSSItems(ct)
 	if err != nil {
-		log.Printf("info: feed.rssが読み込めませんでした。新規作成します：%s", err)
+		log.Printf("info: feed.rssが読み込めませんでした。：%s", err)
 	}
 
 	newInfo, err := pref.fetchNewPodcastFilesInfo(ct, items)

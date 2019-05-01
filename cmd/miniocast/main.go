@@ -14,15 +14,15 @@ func main() {
 func run() (exitCode int) {
 	exitCode = 0
 
-	ps, ct, err := miniocast.Initialize()
+	prefs, ct, err := miniocast.Initialize()
 	if err != nil {
 		log.Printf("alert: 初期化に失敗しました：%s", err)
 		exitCode = 1
 		return
 	}
 
-	for _, p := range ps {
-		p.Update(ct)
+	for _, pref := range prefs {
+		pref.Update(ct)
 	}
 
 	return
