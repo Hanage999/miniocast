@@ -1,0 +1,7 @@
+cmd/**/*.yml
+cmd/**/*.txt
+cmd/**/*.json
+cmd/miniocast/miniocast
+.DS_Store
+config.yml
+.ftpconfig

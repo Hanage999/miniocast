@@ -1,0 +1,21 @@
+StorageCredentials:  # クラウドストレージ接続のための資格情報（環境に応じて要変更）
+    Server: minio.example.com
+    AccessKey: *************
+    SecretKey: *****************
+
+Podcasts:
+    -   Title: タイトル
+        Subtitle: サブタイトル
+        Author: 作者
+        Email: author@example.com   #これがないと、author・itunes:authorがfeedに含まれない
+        Description: Podcastの簡単な説明
+        Bucket: bucketname
+        Folder: foldername
+
+    -   Title: タイトル2
+        Subtitle: サブタイトル2
+        Author: 作者2
+        Email: author2@example.com
+        Description: Podcastの簡単な説明2
+        Bucket: bucketname2
+        Folder: foldername2
