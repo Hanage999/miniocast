@@ -1,7 +1,9 @@
-StorageCredentials:  # クラウドストレージ接続のための資格情報（環境に応じて要変更）
+Storage:  # クラウドストレージ接続のための情報（環境に応じて要変更）
     Server: minio.example.com
     AccessKey: *************
     SecretKey: *****************
+    HTTPS: true         # ストレージにhttpsでアクセスする場合はtrue
+    BucketAsVirtualHost: false      # trueで、バケット名をサブドメインとしてアクセス（S3の新デフォルト）
 
 Podcasts:
     -   Title: タイトル

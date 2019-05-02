@@ -50,10 +50,22 @@ func Initialize() (casts []*PodcastPref, ct *minio.Client, err error) {
 		log.Printf("alert: 設定ファイルが読み込めませんでした")
 		return nil, nil, err
 	}
-	cred := conf.GetStringMapString("StorageCredentials")
+	cred := conf.GetStringMapString("Storage")
 	conf.UnmarshalKey("Podcasts", &casts)
+
+	s := ""
+	if cred["https"] == "true" {
+		s = "s"
+	}
+
+	vh := cred["bucketasvirtualhost"] == "true"
+
 	for i := range casts {
-		casts[i].Link = "https://" + cred["server"] + "/" + casts[i].Bucket + "/" + casts[i].Folder
+		if vh {
+			casts[i].Link = "http" + s + "://" + casts[i].Bucket + "." + cred["server"] + "/" + casts[i].Folder
+		} else {
+			casts[i].Link = "http" + s + "://" + cred["server"] + "/" + casts[i].Bucket + "/" + casts[i].Folder
+		}
 	}
 
 	// クラウドストレージクライアントの生成
