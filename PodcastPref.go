@@ -75,7 +75,9 @@ func (pref *PodcastPref) newCast() (pc *podcast.Podcast) {
 	now := time.Now()
 	pcr := podcast.New(pref.Title, pref.Link, pref.Description, &now, &now)
 	pcr.AddAtomLink(pref.Link + "/feed.rss")
-	pcr.AddSubTitle(pref.Subtitle)
+	if pref.Subtitle != "" {
+		pcr.AddSubTitle(pref.Subtitle)
+	}
 	pcr.AddAuthor(pref.Author, pref.Email)
 	pcr.AddCategory("Personal Journals", nil)
 	pcr.AddImage(pref.Link + "/image.jpg")

@@ -7,14 +7,14 @@ Storage:  # クラウドストレージ接続のための情報（環境に応�
 
 Podcasts:
     -   Title: タイトル
-        Subtitle: サブタイトル
+        Subtitle: サブタイトル（省略可）
         Author: 作者
-        Email: author@example.com   #これがないと、author・itunes:authorがfeedに含まれない
+        Email: author@example.com   # これがないと、authorタグとitunes:authorタグがfeedに含まれない
         Description: Podcastの簡単な説明
         Bucket: bucketname
         Folder: foldername
-        Serial: false   #   タイトルに自動連番をつけるならtrue
-        Active: true    #   このフォルダを更新対象にするならtrue
+        Serial: false   # タイトルに自動連番をつけるならtrue
+        Active: true    # このフォルダを更新対象にするならtrue
 
     -   Title: タイトル2
         Subtitle: サブタイトル2

@@ -82,6 +82,7 @@ func getDetailsFromName(key string) (id int, title, des string) {
 	fullName := strings.Trim(key, " ")
 	fullName = strings.TrimSuffix(fullName, path.Ext(fullName))
 	des = " "
+
 	ss := strings.SplitN(fullName, " ", 2)
 	if fullName == ss[0] {
 		log.Printf("trace: no space in string: %s", fullName)
@@ -90,17 +91,24 @@ func getDetailsFromName(key string) (id int, title, des string) {
 	}
 
 	title = ss[0]
+	des = strings.Trim(ss[1], " ")
+
+	daicount := strings.Count(ss[1], "第")
+	kaicount := strings.Count(ss[1], "回")
+	if daicount != 1 || kaicount != 1 {
+		return
+	}
 
 	dai := strings.IndexRune(ss[1], '第')
-	kai := strings.IndexRune(ss[1], '回')
-	if dai != -1 && kai != -1 {
+	kai := strings.IndexRune(ss[1][dai+3:], '回')
+	if kai != -1 {
+		kai += dai + 3
 		ids := ss[1][dai+3 : kai]
-		id, _ = strconv.Atoi(ids)
-		if kai+3 < len(ss[1]) {
+		var err error
+		id, err = strconv.Atoi(ids)
+		if kai+3 < len(ss[1]) && err == nil {
 			des = strings.Trim(ss[1][kai+3:], " ")
 		}
-	} else {
-		des = strings.Trim(ss[1], " ")
 	}
 
 	return
