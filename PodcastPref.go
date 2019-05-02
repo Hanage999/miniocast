@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"path"
 	"sort"
 	"strconv"
 	"strings"
@@ -27,6 +26,8 @@ type PodcastPref struct {
 	Link        string
 	Bucket      string
 	Folder      string
+	Serial      bool
+	Active      bool
 }
 
 // Update は、フィードを作成あるいは更新する
@@ -35,20 +36,19 @@ func (pref *PodcastPref) Update(ct *minio.Client) {
 
 	items, err := pref.fetchRSSItems(ct)
 	if err != nil {
-		log.Printf("info: feed.rssが読み込めませんでした。：%s", err)
+		log.Printf("info: %s のfeed.rssが読み込めませんでした。：%s", pref.Folder, err)
 	}
 
 	newInfo, err := pref.fetchNewPodcastFilesInfo(ct, items)
 	if err != nil {
-		log.Printf("info: フォルダの中の新規音声ファイルリストが取得できませんでした：%s", err)
+		log.Printf("info: %s の中の新規音声ファイルリストが取得できませんでした：%s", pref.Folder, err)
 		return
 	}
 
 	if len(newInfo) > 0 {
-		lastID := len(items)
-		newItems, err := pref.itemsFromInfo(newInfo, lastID)
+		newItems, err := pref.itemsFromInfo(newInfo, items)
 		if err != nil {
-			log.Printf("info: 新規アイテムの作成に失敗しました：%s", err)
+			log.Printf("info: %s の新規アイテムの作成に失敗しました：%s", pref.Folder, err)
 			return
 		}
 
@@ -61,6 +61,7 @@ func (pref *PodcastPref) Update(ct *minio.Client) {
 		pc.AddPubDate(&now)
 		pc.AddLastBuildDate(&now)
 
+		// log.Printf("info: %s", pc)
 		if err := pref.upload(ct, pc); err != nil {
 			log.Printf("info: feed.rssのアップロードに失敗しました：%s", err)
 		}
@@ -88,7 +89,7 @@ func (pref *PodcastPref) newCast() (pc *podcast.Podcast) {
 func (pref *PodcastPref) fetchRSSItems(ct *minio.Client) (items []*podcast.Item, err error) {
 	reader, err := ct.GetObject(pref.Bucket, pref.Folder+"/feed.rss", minio.GetObjectOptions{})
 	if err != nil {
-		log.Printf("info: RSSファイルが取得できません：%s", err)
+		log.Printf("info: %s のRSSファイルが取得できません：%s", pref.Folder, err)
 		return
 	}
 	defer reader.Close()
@@ -100,7 +101,7 @@ func (pref *PodcastPref) fetchRSSItems(ct *minio.Client) (items []*podcast.Item,
 			break
 		}
 		if err != nil {
-			log.Printf("info: xmlのデコードに失敗しました：%s", err)
+			log.Printf("info: %s のxmlのデコードに失敗しました：%s", pref.Folder, err)
 			return items, err
 		}
 		switch se := token.(type) {
@@ -129,7 +130,7 @@ func (pref *PodcastPref) fetchNewPodcastFilesInfo(ct *minio.Client, oldItems []*
 
 	for object := range ct.ListObjectsV2(pref.Bucket, pref.Folder+"/", true, doneCh) {
 		if object.Err != nil {
-			log.Printf("alert: ファイルリストの取得に失敗しました：%s", object.Err)
+			log.Printf("alert: %s のファイルリストの取得に失敗しました：%s", pref.Folder, object.Err)
 			err = fmt.Errorf("%s", object.Err)
 			return
 		}
@@ -148,22 +149,32 @@ func (pref *PodcastPref) fetchNewPodcastFilesInfo(ct *minio.Client, oldItems []*
 }
 
 // itemsFromInfo は、音声ファイルのObjectInfoをもとに新規RSSアイテムの構造体を生成する
-func (pref *PodcastPref) itemsFromInfo(fInfo FileInfos, lastID int) (newItems []podcast.Item, err error) {
+func (pref *PodcastPref) itemsFromInfo(fInfo FileInfos, existingItems []*podcast.Item) (newItems []podcast.Item, err error) {
+	lastID := len(existingItems)
+	if lastID > 0 {
+		id, _, _ := getDetailsFromName(existingItems[0].Title)
+		if id != 0 {
+			lastID = id
+		}
+	}
+
 	for i, info := range fInfo {
 		item := podcast.Item{}
 		fn := strings.TrimLeft(info.Key, pref.Folder+"/")
-		item.Description = " "
-		id, date, des, err := getDetailsFromName(fn)
-		if err == nil {
-			item.Title = date + " 第" + strconv.Itoa(id) + "回"
-			item.Description = des
-		} else {
-			item.Title = strings.TrimSuffix(fn, path.Ext(fn)) + " 第" + strconv.Itoa(lastID+len(fInfo)-i) + "回"
+		id, title, des := getDetailsFromName(fn)
+		idst := ""
+		item.Description = des
+		if id != 0 {
+			idst = " 第" + strconv.Itoa(id) + "回"
+		} else if pref.Serial == true {
+			idst = " 第" + strconv.Itoa(lastID+len(fInfo)-i) + "回"
 		}
+		item.Title = title + idst
 		url := pref.Link + strings.TrimLeft(info.Key, pref.Folder)
 		tp := getType(info)
 		item.AddEnclosure(url, tp, info.Size)
 		upd := info.LastModified
+
 		item.AddPubDate(&upd)
 		newItems = append(newItems, item)
 	}
@@ -177,7 +188,7 @@ func (pref *PodcastPref) upload(ct *minio.Client, pc *podcast.Podcast) (err erro
 	reader := bytes.NewReader(bts)
 	_, err = ct.PutObject(pref.Bucket, pref.Folder+"/feed.rss", reader, int64(binary.Size(bts)), minio.PutObjectOptions{ContentType: "application/rss+xml"})
 	if err != nil {
-		log.Printf("alert: rssファイルのアップロードに失敗しました：%s", err)
+		log.Printf("alert: %s のrssファイルのアップロードに失敗しました：%s", pref.Folder, err)
 	}
 
 	return

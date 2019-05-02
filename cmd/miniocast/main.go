@@ -22,7 +22,11 @@ func run() (exitCode int) {
 	}
 
 	for _, pref := range prefs {
-		pref.Update(ct)
+		if pref.Active {
+			pref.Update(ct)
+		} else {
+			log.Printf("info: %s は、更新を停止しています", pref.Title)
+		}
 	}
 
 	return

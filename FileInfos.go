@@ -18,9 +18,9 @@ func (fInfo FileInfos) Swap(i, j int) {
 // Less は、FileInfosの小さい方を判定する
 func (fInfo FileInfos) Less(i, j int) bool {
 	less := fInfo[i].LastModified.After(fInfo[j].LastModified)
-	idi, _, _, erri := getDetailsFromName(fInfo[i].Key)
-	idj, _, _, errj := getDetailsFromName(fInfo[j].Key)
-	if erri == nil && errj == nil {
+	idi, _, _ := getDetailsFromName(fInfo[i].Key)
+	idj, _, _ := getDetailsFromName(fInfo[j].Key)
+	if idi != 0 && idj != 0 {
 		less = idi > idj
 	}
 	return less

@@ -1,7 +1,6 @@
 package miniocast
 
 import (
-	"fmt"
 	"log"
 	"path"
 	"strconv"
@@ -67,25 +66,29 @@ func Initialize() (casts []*PodcastPref, ct *minio.Client, err error) {
 }
 
 // getDetailsFromName は、オブジェクト名から各種情報を抽出する
-func getDetailsFromName(key string) (id int, date, des string, err error) {
+func getDetailsFromName(key string) (id int, title, des string) {
 	fullName := strings.Trim(key, " ")
 	fullName = strings.TrimSuffix(fullName, path.Ext(fullName))
+	des = " "
 	ss := strings.SplitN(fullName, " ", 2)
 	if fullName == ss[0] {
-		err = fmt.Errorf("no space in string: %s", fullName)
+		log.Printf("trace: no space in string: %s", fullName)
+		title = fullName
 		return
 	}
 
-	date = ss[0]
+	title = ss[0]
 
 	dai := strings.IndexRune(ss[1], '第')
 	kai := strings.IndexRune(ss[1], '回')
-	ids := ss[1][dai+3 : kai]
-	id, _ = strconv.Atoi(ids)
-
-	des = " "
-	if kai+3 < len(ss[1]) {
-		des = strings.Trim(ss[1][kai+3:], " ")
+	if dai != -1 && kai != -1 {
+		ids := ss[1][dai+3 : kai]
+		id, _ = strconv.Atoi(ids)
+		if kai+3 < len(ss[1]) {
+			des = strings.Trim(ss[1][kai+3:], " ")
+		}
+	} else {
+		des = strings.Trim(ss[1], " ")
 	}
 
 	return
