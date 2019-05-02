@@ -175,8 +175,11 @@ func (pref *PodcastPref) itemsFromInfo(fInfo FileInfos, existingItems []*podcast
 		url := pref.Link + strings.TrimLeft(info.Key, pref.Folder)
 		tp := getType(info)
 		item.AddEnclosure(url, tp, info.Size)
-		upd := info.LastModified
 
+		upd := info.LastModified
+		// 「for rangeのrangeの返り値には同じ参照先が使用されている。」
+		// https://qiita.com/RunEagler/items/008e2b304f27b7fb168a
+		// だから、&info.LastModifiedを引数に指定しても、それは最終的に全て同じ値になってしまう
 		item.AddPubDate(&upd)
 		newItems = append(newItems, item)
 	}
