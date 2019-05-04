@@ -185,9 +185,6 @@ func (pref *PodcastPref) webItemsFromInfo(fInfo FileInfos, existingItems []*WebI
 		item.FileURL = pref.Link + strings.TrimLeft(info.Key, pref.Folder)
 
 		item.PubDateFormatted = parseDate(info.LastModified)
-		// 「for rangeのrangeの返り値には同じ参照先が使用されている。」
-		// https://qiita.com/RunEagler/items/008e2b304f27b7fb168a
-		// だから、&info.LastModifiedを引数に指定しても、それは最終的に全て同じ値になってしまう
 
 		newItems = append(newItems, &item)
 	}
@@ -204,7 +201,7 @@ func parseDate(t time.Time) (upd string) {
 
 // uploadWeb は、クラウドストレージにweb.htmlをアップロードする
 func (pref *PodcastPref) uploadWeb(ct *minio.Client, web *Web) (err error) {
-	wbt := template.Must(template.New("webtemplate.gohtml").ParseFiles("webtemplate.gohtml"))
+	wbt := template.Must(template.ParseFiles("web.gohtml", "web.css"))
 
 	buf := new(bytes.Buffer)
 
