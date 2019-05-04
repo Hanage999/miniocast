@@ -93,12 +93,6 @@ func getDetailsFromName(key string) (id int, title, des string) {
 	title = ss[0]
 	des = strings.Trim(ss[1], " ")
 
-	daicount := strings.Count(ss[1], "第")
-	kaicount := strings.Count(ss[1], "回")
-	if daicount != 1 || kaicount != 1 {
-		return
-	}
-
 	dai := strings.IndexRune(ss[1], '第')
 	kai := strings.IndexRune(ss[1][dai+3:], '回')
 	if kai != -1 {
@@ -116,13 +110,11 @@ func getDetailsFromName(key string) (id int, title, des string) {
 
 // getType は、ストレージオブジェクトのタイプを返す
 func getType(info minio.ObjectInfo) (tp podcast.EnclosureType) {
-	k := info.Key
+	k := strings.ToLower(info.Key)
 	switch {
 	case strings.HasSuffix(k, "mp3"):
 		tp = podcast.MP3
-	case strings.HasSuffix(k, "m4a"):
-		tp = podcast.M4A
-	case strings.HasSuffix(k, "m4b"):
+	default:
 		tp = podcast.M4A
 	}
 	return

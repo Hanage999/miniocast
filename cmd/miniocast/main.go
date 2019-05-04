@@ -23,7 +23,8 @@ func run() (exitCode int) {
 
 	for _, pref := range prefs {
 		if pref.Active {
-			pref.Update(ct)
+			pref.UpdateRSS(ct)
+			pref.UpdateWeb(ct)
 		} else {
 			log.Printf("info: %s は、更新を停止しています", pref.Title)
 		}

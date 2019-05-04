@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang=ja>
+
+<head>
+    <meta charset=utf-8>
+    <meta name=viewport content="width=device-width,initial-scale=1">
+    <title>{{.Title}}</title>
+
+    <link rel="alternate" type="application/rss+xml" title="{{.Title}}"
+        href="{{.Link}}/feed.rss" />
+
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:image" content="{{.Link}}/image.jpg" />
+    <meta property="og:site_name" content="{{.Title}}" />
+    <meta property="og:image" content="{{.Link}}/image.jpg" />
+    <meta property="og:url" content="{{.Link}}/web.html" />
+    <meta property="og:type" content="blog" />
+    <meta property="og:title" content="{{.Title}}" />
+    <meta property="og:description" content="{{.Description}}" />
+</head>
+
+<body>
+    <style>
+        body {
+        font-family: Verdana, "Droid Sans", Meiryo, Arial;
+        color: #222;
+        font-size: 16px;
+        line-height: 1.6;
+        padding: 0;
+        margin: 0;
+        }
+
+        header {
+        width: 100%;
+        background: #f5f5f5;
+        border-bottom: 1px solid #e0e0e0;
+        }
+
+        #header-inner, main, footer {
+        max-width: 630px;
+        padding: 0 15px 30px;
+        margin: 0 auto;
+        }
+
+        #header-inner {
+        padding: 20px 13px 15px;
+        }
+
+        a {
+        color: #1a0dab;
+        text-decoration: none;
+        }
+
+        a:visited {
+        color: #609;
+        }
+
+        a:hover {
+        text-decoration: underline;
+        }
+
+        ul {
+        padding-left: 30px;
+        }
+
+        li {
+        margin: .3em 0;
+        }
+
+        #banner {
+        color: inherit;
+        line-height: 1.2;
+
+        /* mobile only */
+        display: inline-block;
+        width: 100%;
+        font-size: 7.7vw;
+        text-align-last: justify;
+        }
+
+        .site-description {
+        font-size: small;
+        margin-top: .3em;
+        text-align: justify;
+        padding: 0 2px;
+        }
+
+        .episode {
+        margin-top: 20px;
+        margin-bottom: 30px;
+        }
+
+        .title {
+        display: inline-block;
+        font-size: 18px;
+        }
+
+        .description, .donate {
+        color: #3C4043;
+        font-size: 14px;
+        margin-top: .3em;
+        }
+
+        audio {
+        width: 90%;
+        }
+
+        #player-container, .seek {
+        user-select: none;
+        -moz-user-select: none;
+        -webkit-user-select: none;
+        -ms-user-select: none;
+        }
+
+        #player-container {
+        margin: 45px auto;
+        padding: 10px 0 5px 0;
+        text-align: center;
+        font-size: small;
+        border-bottom: 1px solid white;
+
+        position: sticky;
+        position: -webkit-sticky;
+        top: 0;
+        background-color: white;
+        transition: border-bottom-color .3s;
+        }
+
+        .player-control {
+        text-decoration: underline;
+        cursor: pointer;
+        }
+
+        .seek {
+        border-bottom: 1px dotted;
+        white-space: nowrap;
+        }
+
+        .seek:hover {
+        cursor: pointer;
+        }
+
+        .chapters {
+        margin: 30px 0px;
+        border-spacing: 0;
+        border: none;
+        }
+
+        .chap-time {
+        padding: .3em .8em .3em 1em;
+        vertical-align: top;
+        text-align: right;
+        }
+
+        .chap-text {
+        padding: .3em .5em .3em 0;
+        width: 100%;
+        }
+
+        .chapters tr:nth-child(even) {
+        background-color: #f8f8f8;
+        }
+
+        .focus {
+        background-color: cornsilk !important;
+        }
+
+        .nobr {
+        white-space: nowrap;
+        line-height: 2;
+        }
+
+        .date {
+        margin-top: .6em;
+        padding: 0 .3em 1em 0;
+        float: right;
+        }
+
+        footer {
+        font-size: small;
+        margin-top: 0 auto;
+        }
+
+        @media (max-width: 349px) {
+        #banner {
+            font-size: 7.6vw;
+        }
+        }
+
+        @media (min-width: 500px) {
+        #banner {
+            display: inline;
+            font-size: 32px;
+        }
+        audio {
+            width: 80%;
+        }
+        }
+    </style>
+
+    <header>
+        <div id="header-inner">
+            <a id="banner" href="{{.Link}}/web.html">{{.Title}}</a>
+            <div class="site-description">{{.Description}}</div>
+        </div>
+    </header>
+
+    <main>
+        {{- range $item := .Items -}}
+        <div class=episode data-timestamp="{{$item.PubDateFormatted}}">
+            <a class=title href="{{.FileURL}}">{{$item.Title}}</a>
+            <div class=description>{{$item.Description}}</div>
+        </div>
+        {{- end -}}
+    </main>
+</body>
+
+</html>

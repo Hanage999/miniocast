@@ -30,22 +30,22 @@ type PodcastPref struct {
 	Active      bool
 }
 
-// Update は、フィードを作成あるいは更新する
-func (pref *PodcastPref) Update(ct *minio.Client) {
-	pc := pref.newCast()
-
+// UpdateRSS は、フィードを作成あるいは更新する
+func (pref *PodcastPref) UpdateRSS(ct *minio.Client) {
 	items, err := pref.fetchRSSItems(ct)
 	if err != nil {
 		log.Printf("info: %s のfeed.rssが読み込めませんでした。：%s", pref.Folder, err)
 	}
 
-	newInfo, err := pref.fetchNewPodcastFilesInfo(ct, items)
+	newInfo, err := pref.fetchNewRSSItemsInfo(ct, items)
 	if err != nil {
 		log.Printf("info: %s の中の新規音声ファイルリストが取得できませんでした：%s", pref.Folder, err)
 		return
 	}
 
 	if len(newInfo) > 0 {
+		rss := pref.newRSS()
+
 		newItems, err := pref.itemsFromInfo(newInfo, items)
 		if err != nil {
 			log.Printf("info: %s の新規アイテムの作成に失敗しました：%s", pref.Folder, err)
@@ -53,16 +53,16 @@ func (pref *PodcastPref) Update(ct *minio.Client) {
 		}
 
 		for _, item := range newItems {
-			_, _ = pc.AddItem(item)
+			_, _ = rss.AddItem(item)
 		}
 
-		pc.Items = append(pc.Items, items...)
+		rss.Items = append(rss.Items, items...)
 		now := time.Now()
-		pc.AddPubDate(&now)
-		pc.AddLastBuildDate(&now)
+		rss.AddPubDate(&now)
+		rss.AddLastBuildDate(&now)
 
-		// log.Printf("info: %s", pc)
-		if err := pref.upload(ct, pc); err != nil {
+		// log.Printf("info: %s", rss)
+		if err := pref.uploadRSS(ct, rss); err != nil {
 			log.Printf("info: feed.rssのアップロードに失敗しました：%s", err)
 		}
 	}
@@ -70,19 +70,19 @@ func (pref *PodcastPref) Update(ct *minio.Client) {
 	return
 }
 
-// newCast は、Podcast構造体を初期化する
-func (pref *PodcastPref) newCast() (pc *podcast.Podcast) {
+// newRSS は、Podcast構造体を初期化する
+func (pref *PodcastPref) newRSS() (rss *podcast.Podcast) {
 	now := time.Now()
-	pcr := podcast.New(pref.Title, pref.Link, pref.Description, &now, &now)
-	pcr.AddAtomLink(pref.Link + "/feed.rss")
+	rssr := podcast.New(pref.Title, pref.Link+"/web.html", pref.Description, &now, &now)
+	rssr.AddAtomLink(pref.Link + "/feed.rss")
 	if pref.Subtitle != "" {
-		pcr.AddSubTitle(pref.Subtitle)
+		rssr.AddSubTitle(pref.Subtitle)
 	}
-	pcr.AddAuthor(pref.Author, pref.Email)
-	pcr.AddCategory("Personal Journals", nil)
-	pcr.AddImage(pref.Link + "/image.jpg")
-	pcr.Language = "ja"
-	pc = &pcr
+	rssr.AddAuthor(pref.Author, pref.Email)
+	rssr.AddCategory("Personal Journals", nil)
+	rssr.AddImage(pref.Link + "/image.jpg")
+	rssr.Language = "ja"
+	rss = &rssr
 	return
 }
 
@@ -119,8 +119,8 @@ func (pref *PodcastPref) fetchRSSItems(ct *minio.Client) (items []*podcast.Item,
 	return
 }
 
-// fetchNewPodcastFilesInfo は、ストレージに新規に追加された音声ファイルのObjectInfoを返す
-func (pref *PodcastPref) fetchNewPodcastFilesInfo(ct *minio.Client, oldItems []*podcast.Item) (fInfos FileInfos, err error) {
+// fetchNewRSSItemsInfo は、ストレージに新規に追加された音声ファイルのObjectInfoを返す
+func (pref *PodcastPref) fetchNewRSSItemsInfo(ct *minio.Client, oldItems []*podcast.Item) (fInfos FileInfos, err error) {
 	doneCh := make(chan struct{})
 	defer close(doneCh)
 
@@ -136,7 +136,7 @@ func (pref *PodcastPref) fetchNewPodcastFilesInfo(ct *minio.Client, oldItems []*
 			err = fmt.Errorf("%s", object.Err)
 			return
 		}
-		k := object.Key
+		k := strings.ToLower(object.Key)
 		if strings.HasSuffix(k, "mp3") || strings.HasSuffix(k, "m4a") || strings.HasSuffix(k, "m4b") {
 			newDate := object.LastModified.Truncate(time.Second)
 			if lastUpd.Before(newDate) && !lastUpd.Equal(newDate) {
@@ -187,9 +187,9 @@ func (pref *PodcastPref) itemsFromInfo(fInfo FileInfos, existingItems []*podcast
 	return
 }
 
-// upload は、クラウドストレージにfeed.rssをアップロードする
-func (pref *PodcastPref) upload(ct *minio.Client, pc *podcast.Podcast) (err error) {
-	bts := pc.Bytes()
+// uploadRSS は、クラウドストレージにfeed.rssをアップロードする
+func (pref *PodcastPref) uploadRSS(ct *minio.Client, rss *podcast.Podcast) (err error) {
+	bts := rss.Bytes()
 	reader := bytes.NewReader(bts)
 	_, err = ct.PutObject(pref.Bucket, pref.Folder+"/feed.rss", reader, int64(binary.Size(bts)), minio.PutObjectOptions{ContentType: "application/rss+xml"})
 	if err != nil {

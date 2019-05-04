@@ -5,3 +5,5 @@ cmd/miniocast/miniocast
 .DS_Store
 config.yml
 .ftpconfig
+webscript.js
+webcss.css
