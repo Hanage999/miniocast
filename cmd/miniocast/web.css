@@ -21,7 +21,13 @@ header {
 }
 
 #header-inner {
-  padding: 20px 13px 15px;
+  padding: 20px 13px;
+  display: grid;
+  grid-template-rows: minmax(auto, 100%) minmax(auto, 100%);
+  grid-template-columns: 85% minmax(auto, auto);
+  grid-template-areas:
+	"A C"
+	"B C";
 }
 
 a {
@@ -48,20 +54,32 @@ li {
 #banner {
   color: inherit;
   line-height: 1.2;
-  white-space: nowrap;
+/*  white-space: nowrap;*/
 
-  /* mobile only */
-  display: inline-block;
-  width: 100%;
+/*  display: inline-block;*/
+/*  width: 100%;*/
   font-size: 7.7vw;
-  text-align-last: justify;
+/*  text-align-last: justify;*/
+  grid-area: A;
 }
 
 .site-description {
   font-size: small;
   margin-top: .3em;
   text-align: justify;
-  padding: 0 2px;
+  padding: 0 20px 0 0;
+  grid-area: B;
+}
+
+.toppic {
+  grid-area: C;
+  display: flex;
+  align-items: center;
+}
+
+img {
+  max-width: 100%;
+  max-height: 100%;
 }
 
 .episode {
