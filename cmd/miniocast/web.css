@@ -69,6 +69,13 @@ li {
   margin-bottom: 30px;
 }
 
+.episode-border {
+  outline-width: thin;
+  outline-color: #c0c0c0;
+  outline-offset: 10px;
+  outline-style: solid;
+}
+
 .title {
   display: inline-block;
   font-size: 18px;
@@ -84,15 +91,16 @@ audio {
   width: 90%;
 }
 
-#player-container, .seek {
+.player-container, .seek {
   user-select: none;
   -moz-user-select: none;
   -webkit-user-select: none;
   -ms-user-select: none;
 }
 
-#player-container {
-  margin: 45px auto;
+.player-container {
+  margin: 20px auto 45px auto;
+  margin-top: 20px;
   padding: 10px 0 5px 0;
   text-align: center;
   font-size: small;
@@ -108,6 +116,10 @@ audio {
 .player-control {
   text-decoration: underline;
   cursor: pointer;
+}
+
+.player-hidden {
+  display: none
 }
 
 .seek {
