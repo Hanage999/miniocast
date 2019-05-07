@@ -5,8 +5,7 @@
     <meta charset=utf-8>
     <meta name=viewport content="width=device-width,initial-scale=1">
     <title>{{.Title}}</title>
-    <link rel="alternate" type="application/rss+xml" title="{{.Title}}"
-        href="{{.Link}}/feed.rss" />
+    <link rel="alternate" type="application/rss+xml" title="{{.Title}}" href="{{.Link}}/feed.rss" />
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:image" content="{{.Link}}/image.jpg" />
     <meta property="og:site_name" content="{{.Title}}" />
@@ -20,7 +19,7 @@
 <body>
 
 <script>
-{{template "script"}}
+{{template "script" .}}
 </script>
 
 <style>

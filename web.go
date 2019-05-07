@@ -16,12 +16,13 @@ import (
 
 // Web は、web.htmlに含めるデータを格納する
 type Web struct {
-	Title       string
-	Subtitle    string
-	Author      string
-	Description string
-	Link        string
-	Items       []*WebItem
+	Title           string
+	Subtitle        string
+	Author          string
+	Description     string
+	Link            string
+	Items           []*WebItem
+	SavePlayState bool
 }
 
 // WebItem は、Web.htmlに含める各エピソードのデータを格納する
@@ -72,6 +73,7 @@ func (pref *PodcastPref) newWeb() (web Web) {
 	web.Author = pref.Author
 	web.Description = pref.Description
 	web.Link = pref.Link
+	web.SavePlayState = pref.SavePlayState
 	return
 }
 

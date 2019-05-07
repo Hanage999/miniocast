@@ -1,5 +1,28 @@
 {{- define "script" -}}
 let players = {};
+{{if .SavePlayState -}}
+let store = {};
+{{end}}
+function saveProgress() {
+  for (k in players) {
+    if (players[k].currentTime > 0) {
+      let prop = {};
+      prop.rate = players[k].playbackRate.toFixed(1);
+      prop.time = players[k].currentTime;
+      store[k] = prop;
+    } else {
+      delete store[k];
+    }
+
+    let title = players[k].parentNode.parentNode.querySelector('.title');
+    if (store[k]) {
+      title.classList.add('time-saved');
+    } else {
+      title.classList.remove('time-saved');
+    }
+  }
+  window.localStorage.setItem('players', JSON.stringify(store));
+}
 
 function togglePlayer(e) {
   e.preventDefault();
@@ -44,7 +67,7 @@ function newPlayer(title) {
   contn.classList.add("player-container");
 
   const tags = `
-  <audio class="player" data-epid="${epID}" preload=metadata controls></audio>
+  <audio class="player" preload=metadata controls></audio>
   <br>
   <div>
     <span class=nobr>
@@ -62,7 +85,7 @@ function newPlayer(title) {
   `;
 
   contn.insertAdjacentHTML("afterbegin", tags);
- 
+
   // Set audio file URL.
   players[epID] = contn.querySelector('.player');
   let elem = document.createElement('source');
@@ -71,8 +94,22 @@ function newPlayer(title) {
   if (ext == 'mp3') {
     elem.type = 'audio/mpeg';
   } else {
-    elem.type = 'audio/x-m4a';
+    elem.type = 'audio/mp4';
   }
+  {{if .SavePlayState}}
+  // Restore the previous player state.
+  let rate;
+  let time = getStartTime(epID);
+  if (store[epID]) {
+    rate = store[epID].rate;
+    if (rate !== '') {
+      players[epID].playbackRate = rate;
+    }
+    if (time > 0) {
+      players[epID].currentTime = time;
+    }
+  }
+  {{end}}
   players[epID].appendChild(elem);
 
   return contn;
@@ -89,15 +126,39 @@ String.prototype.hashCode = function () {
   return hash;
 };
 
+function getStartTime(epID) {
+  if (store && store[epID]) {
+    let t = store[epID].time;
+    return t ? parseInt(t) : 0;
+  }
+  return 0;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-  // Initialize the global variables.
   let episodes = document.querySelectorAll('.episode');
+
+  {{if .SavePlayState -}}
+  if (JSON.parse(window.localStorage.getItem('players'))) {
+    store = JSON.parse(window.localStorage.getItem('players'));
+  }
+  {{end}}
+
+  // Set episode state
   for (let episode of episodes) {
     let url = episode.querySelector('a').getAttribute('href');
     let epid = url.hashCode() + '';
     episode.setAttribute('data-epid', epid);
 
-    episode.querySelector('.title').addEventListener('click', togglePlayer);
+    let title = episode.querySelector('.title');
+    if (store[epid]) {
+      title.classList.add('time-saved');
+    }
+    title.addEventListener('click', togglePlayer);
   }
+
+  {{if .SavePlayState -}}
+  window.onunload = saveProgress;
+  window.setInterval(saveProgress, 10000);
+  {{- end}}
 });
 {{- end -}}

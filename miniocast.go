@@ -52,6 +52,7 @@ func Initialize() (casts []*PodcastPref, ct *minio.Client, err error) {
 	}
 	cred := conf.GetStringMapString("Storage")
 	conf.UnmarshalKey("Podcasts", &casts)
+	uselcl := conf.GetString("SavePlayState")
 
 	s := ""
 	if cred["https"] == "true" {
@@ -65,6 +66,9 @@ func Initialize() (casts []*PodcastPref, ct *minio.Client, err error) {
 			casts[i].Link = "http" + s + "://" + casts[i].Bucket + "." + cred["server"] + "/" + casts[i].Folder
 		} else {
 			casts[i].Link = "http" + s + "://" + cred["server"] + "/" + casts[i].Bucket + "/" + casts[i].Folder
+		}
+		if uselcl == "true" {
+			casts[i].SavePlayState = true
 		}
 	}
 

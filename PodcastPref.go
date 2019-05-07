@@ -18,16 +18,17 @@ import (
 
 // PodcastPref は、設定ファイルから読み込んだ各Podcastの情報を格納する
 type PodcastPref struct {
-	Title       string
-	Subtitle    string
-	Author      string
-	Email       string
-	Description string
-	Link        string
-	Bucket      string
-	Folder      string
-	Serial      bool
-	Active      bool
+	Title           string
+	Subtitle        string
+	Author          string
+	Email           string
+	Description     string
+	Link            string
+	Bucket          string
+	Folder          string
+	Serial          bool
+	Active          bool
+	SavePlayState bool
 }
 
 // UpdateRSS は、フィードを作成あるいは更新する
