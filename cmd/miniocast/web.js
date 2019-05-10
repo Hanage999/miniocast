@@ -86,10 +86,18 @@ function newPlayer(title) {
 
   contn.insertAdjacentHTML("afterbegin", tags);
 
+  let timehash = '';
+  {{if .SavePlayState -}}
+  let time = getStartTime(epID);
+  if (time > 0) {
+    timehash = '#t=' + time;
+  }
+  {{- end}}
+
   // Set audio file URL.
   players[epID] = contn.querySelector('.player');
   let elem = document.createElement('source');
-  elem.src = episode.querySelector('a').getAttribute('href');
+  elem.src = episode.querySelector('a').getAttribute('href') + timehash;
   let ext = elem.src.split('.').pop().toLowerCase();
   if (ext == 'mp3') {
     elem.type = 'audio/mpeg';
@@ -97,18 +105,16 @@ function newPlayer(title) {
     elem.type = 'audio/mp4';
   }
   {{if .SavePlayState}}
-  // Restore the previous player state.
+
   let rate;
-  let time = getStartTime(epID);
   if (store[epID]) {
     rate = store[epID].rate;
     if (rate !== '') {
       players[epID].playbackRate = rate;
     }
-    if (time > 0) {
-      players[epID].currentTime = time;
-    }
   }
+  players[epID].currentTime = time;
+
   {{end}}
   players[epID].appendChild(elem);
 
@@ -127,7 +133,7 @@ String.prototype.hashCode = function () {
 };
 
 function getStartTime(epID) {
-  if (store && store[epID]) {
+  if (store[epID]) {
     let t = store[epID].time;
     return t ? parseInt(t) : 0;
   }
