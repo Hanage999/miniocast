@@ -105,16 +105,13 @@ function newPlayer(title) {
     elem.type = 'audio/mp4';
   }
   {{if .SavePlayState}}
-
-  let rate;
-  if (store[epID]) {
-    rate = store[epID].rate;
-    if (rate !== '') {
-      players[epID].playbackRate = rate;
-    }
-  }
   players[epID].currentTime = time;
 
+  let rate = getPlaybackRate(epID);
+  if (rate !== '') {
+    players[epID].playbackRate = rate;
+  }
+ 
   {{end}}
   players[epID].appendChild(elem);
 
@@ -140,14 +137,23 @@ function getStartTime(epID) {
   return 0;
 }
 
+function getPlaybackRate(epID) {
+  if (store[epID]) {
+    let rate = store[epID].rate;
+    return rate ? rate : '';
+  }
+  return '';
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   let episodes = document.querySelectorAll('.episode');
 
   {{if .SavePlayState -}}
-  if (JSON.parse(window.localStorage.getItem('players'))) {
-    store = JSON.parse(window.localStorage.getItem('players'));
+  let st;
+  if (st = JSON.parse(window.localStorage.getItem('players'))) {
+    store = st;
   }
-  {{end}}
+  {{- end}}
 
   // Set episode state
   for (let episode of episodes) {

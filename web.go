@@ -16,12 +16,12 @@ import (
 
 // Web は、web.htmlに含めるデータを格納する
 type Web struct {
-	Title           string
-	Subtitle        string
-	Author          string
-	Description     string
-	Link            string
-	Items           []*WebItem
+	Title         string
+	Subtitle      string
+	Author        string
+	Description   string
+	Link          string
+	Items         []*WebItem
 	SavePlayState bool
 }
 
