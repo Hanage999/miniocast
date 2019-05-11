@@ -38,17 +38,27 @@ function togglePlayer(e) {
   } else {
     contn = newPlayer(e.target);
     episode.appendChild(contn);
-    // Keep the playback speed indicator in sync with the actual speed.
     player = contn.querySelector('.player');
+    {{if .SavePlayState -}} player.addEventListener('canplay', loadCurrentTime, {once: true}); {{- end}}
+    // Keep the playback speed indicator in sync with the actual speed.
     player.addEventListener('ratechange', () => {
       contn.getElementsByClassName('current-rate')[0].textContent = player.playbackRate.toFixed(1);
-    });
+      });
     player.addEventListener('play', pauseOtherPlayers);
   }
 
   if (!episode.classList.contains('episode-border')) {
     player.pause();
   }
+}
+
+function loadCurrentTime(e) {
+  let player = e.target;
+  let epID = e.target.parentElement.parentElement.getAttribute("data-epid");
+  let time = getStartTime(epID);
+  if (time > 0) {
+    players[epID].currentTime = time;
+  }  
 }
 
 function pauseOtherPlayers(e) {
@@ -65,7 +75,6 @@ function newPlayer(title) {
 
   let contn = document.createElement("div");
   contn.classList.add("player-container");
-
   const tags = `
   <audio class="player" preload=metadata controls></audio>
   <br>
@@ -83,38 +92,33 @@ function newPlayer(title) {
     </span>
   </div>
   `;
-
   contn.insertAdjacentHTML("afterbegin", tags);
 
+  // Set audio file URL.
   let timehash = '';
-  {{if .SavePlayState -}}
+  {{- if .SavePlayState -}}
   let time = getStartTime(epID);
   if (time > 0) {
     timehash = '#t=' + time;
   }
   {{- end}}
-
-  // Set audio file URL.
   players[epID] = contn.querySelector('.player');
   let elem = document.createElement('source');
-  elem.src = episode.querySelector('a').getAttribute('href') + timehash;
+  elem.src = episode.querySelector('a').getAttribute('href');
   let ext = elem.src.split('.').pop().toLowerCase();
   if (ext == 'mp3') {
     elem.type = 'audio/mpeg';
   } else {
     elem.type = 'audio/mp4';
   }
+  elem.src = elem.src + timehash;
+  players[epID].appendChild(elem);
   {{if .SavePlayState}}
-  players[epID].currentTime = time;
-
   let rate = getPlaybackRate(epID);
   if (rate !== '') {
     players[epID].playbackRate = rate;
   }
- 
-  {{end}}
-  players[epID].appendChild(elem);
-
+  {{- end}}
   return contn;
 }
 
@@ -147,14 +151,12 @@ function getPlaybackRate(epID) {
 
 document.addEventListener('DOMContentLoaded', () => {
   let episodes = document.querySelectorAll('.episode');
-
-  {{if .SavePlayState -}}
+  {{- if .SavePlayState -}}
   let st;
   if (st = JSON.parse(window.localStorage.getItem('players'))) {
     store = st;
   }
-  {{- end}}
-
+  {{- end -}}
   // Set episode state
   for (let episode of episodes) {
     let url = episode.querySelector('a').getAttribute('href');
@@ -167,7 +169,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     title.addEventListener('click', togglePlayer);
   }
-
   {{if .SavePlayState -}}
   window.onunload = saveProgress;
   window.setInterval(saveProgress, 10000);
