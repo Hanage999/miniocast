@@ -103,15 +103,15 @@ function newPlayer(title) {
   }
   {{- end}}
   players[epID] = contn.querySelector('.player');
+  let url = episode.querySelector('a').getAttribute('href');
+  let ext = url.split('.').pop().toLowerCase();
   let elem = document.createElement('source');
-  elem.src = episode.querySelector('a').getAttribute('href');
-  let ext = elem.src.split('.').pop().toLowerCase();
+  elem.src = url + timehash;
   if (ext == 'mp3') {
     elem.type = 'audio/mpeg';
   } else {
     elem.type = 'audio/mp4';
   }
-  elem.src = elem.src + timehash;
   players[epID].appendChild(elem);
   {{if .SavePlayState}}
   let rate = getPlaybackRate(epID);
@@ -122,6 +122,7 @@ function newPlayer(title) {
   return contn;
 }
 
+// https://stackoverflow.com/a/8076436
 String.prototype.hashCode = function () {
   var hash = 0, i, chr;
   if (this.length === 0) return hash;
