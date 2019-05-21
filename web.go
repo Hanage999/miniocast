@@ -203,7 +203,7 @@ func parseDate(t time.Time) (upd string) {
 
 // uploadWeb は、クラウドストレージにweb.htmlをアップロードする
 func (pref *PodcastPref) uploadWeb(ct *minio.Client, web *Web) (err error) {
-	wbt := template.Must(template.ParseFiles("web.gohtml", "web.js", "web.css"))
+	wbt := template.Must(template.ParseFiles("web.html.tmpl", "web.js.tmpl", "web.css.tmpl"))
 
 	buf := new(bytes.Buffer)
 
