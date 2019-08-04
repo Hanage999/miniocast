@@ -16,7 +16,8 @@ Amazon S3 互換のクラウドストレージ、MinIO のバケットを Podcas
 
 ## miniocastコマンドの使い方
 1. 下準備1：MinIO のバケットと Podcast ごとのフォルダを作成し、バケットには Read Only ポリシーを適用しておく。
-1. 下準備2：Podcast にしたいフォルダ直下に、image.jpg という名前でタイトル画像を設置しておく。
+1. 下準備2：Podcast にしたいフォルダ直下に、配信したい mp3 もしくは m4a ファイルを置く。
+1. 下準備3：Podcast にしたいフォルダ直下に、image.jpg という名前でタイトル画像を設置する。
 1. cmd/miniocast フォルダで go get、go build すると、フォルダに miniocast コマンドができる。MinIOサーバーと同じマシンに置く必要はない。（ただ後述の通り、同一マシンに置いておくと、より便利に使える場合もあるかも）
 1. config.yml.example を config.yml にリネームまたはコピーし、バケットとフォルダなどの設定に応じて書き換えるあるいは追記する。
 1. フォルダに config.yml と web.html.tmpl、web.js.tmpl、web.css.tmpl が存在することを確認して、./miniocast で起動。
