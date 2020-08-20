@@ -15,7 +15,7 @@ func webtmp() string {
     <meta name="twitter:image" content="{{.Link}}/image.jpg" />
     <meta property="og:site_name" content="{{.Title}}" />
     <meta property="og:image" content="{{.Link}}/image.jpg" />
-    <meta property="og:url" content="{{.Link}}/web.html" />
+    <meta property="og:url" content="{{.Link}}/index.html" />
     <meta property="og:type" content="blog" />
     <meta property="og:title" content="{{.Title}}" />
     <meta property="og:description" content="{{.Description}}" />
@@ -33,7 +33,7 @@ func webtmp() string {
 
 <header>
     <div id="header-inner">
-        <a id="banner" href="{{.Link}}/web.html">{{.Title}}</a>
+        <a id="banner" href="{{.Link}}/index.html">{{.Title}}</a>
         <div class="site-description">{{.Description}}</div>
         <div class="toppic"><img src="{{.Link}}/image.jpg"/></div>
     </div>

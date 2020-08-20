@@ -59,7 +59,7 @@ func (pref *PodcastPref) UpdateRSS(ct *minio.Client) {
 // newRSS は、Podcast構造体を初期化する
 func (pref *PodcastPref) newRSS() (rss *podcast.Podcast) {
 	now := time.Now()
-	rssr := podcast.New(pref.Title, pref.Link+"/web.html", pref.Description, &now, &now)
+	rssr := podcast.New(pref.Title, pref.Link+"/index.html", pref.Description, &now, &now)
 	rssr.AddAtomLink(pref.Link + "/feed.rss")
 	if pref.Subtitle != "" {
 		rssr.AddSubTitle(pref.Subtitle)

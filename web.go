@@ -14,7 +14,7 @@ import (
 	"golang.org/x/net/html"
 )
 
-// Web は、web.htmlに含めるデータを格納する
+// Web は、index.htmlに含めるデータを格納する
 type Web struct {
 	Title         string
 	Subtitle      string
@@ -25,7 +25,7 @@ type Web struct {
 	SavePlayState bool
 }
 
-// WebItem は、Web.htmlに含める各エピソードのデータを格納する
+// WebItem は、index.htmlに含める各エピソードのデータを格納する
 type WebItem struct {
 	FileURL          string
 	PubDateFormatted string
@@ -37,7 +37,7 @@ type WebItem struct {
 func (pref *PodcastPref) UpdateWeb(ct *minio.Client) {
 	items, err := pref.fetchWebItems(ct)
 	if err != nil {
-		log.Printf("info: %s のweb.htmlが読み込めませんでした。：%s", pref.Folder, err)
+		log.Printf("info: %s のindex.htmlが読み込めませんでした。：%s", pref.Folder, err)
 	}
 
 	newInfo, err := pref.fetchNewWebItemsInfo(ct, items)
@@ -59,7 +59,7 @@ func (pref *PodcastPref) UpdateWeb(ct *minio.Client) {
 
 		// log.Printf("info: %v", web)
 		if err := pref.uploadWeb(ct, &web); err != nil {
-			log.Printf("info: web.htmlのアップロードに失敗しました：%s", err)
+			log.Printf("info: index.htmlのアップロードに失敗しました：%s", err)
 		}
 	}
 
@@ -77,19 +77,19 @@ func (pref *PodcastPref) newWeb() (web Web) {
 	return
 }
 
-// fetchWebItems は、web.htmlに含まれるアイテムを返す
+// fetchWebItems は、index.htmlに含まれるアイテムを返す
 // xmlのデコード：https://qiita.com/chanmitsu55/items/8268f559efa694bd1cfd
 func (pref *PodcastPref) fetchWebItems(ct *minio.Client) (items []*WebItem, err error) {
-	reader, err := ct.GetObject(pref.Bucket, pref.Folder+"/web.html", minio.GetObjectOptions{})
+	reader, err := ct.GetObject(pref.Bucket, pref.Folder+"/index.html", minio.GetObjectOptions{})
 	if err != nil {
-		log.Printf("info: %s のweb.htmlが取得できません：%s", pref.Folder, err)
+		log.Printf("info: %s のindex.htmlが取得できません：%s", pref.Folder, err)
 		return
 	}
 	defer reader.Close()
 
 	root, err := html.Parse(reader)
 	if err != nil {
-		log.Printf("info: %s のweb.htmlがパースできません：%s", pref.Folder, err)
+		log.Printf("info: %s のindex.htmlがパースできません：%s", pref.Folder, err)
 		return
 	}
 
@@ -201,7 +201,7 @@ func parseDate(t time.Time) (upd string) {
 	return time.Now().UTC().Format(time.RFC1123Z)
 }
 
-// uploadWeb は、クラウドストレージにweb.htmlをアップロードする
+// uploadWeb は、クラウドストレージにindex.htmlをアップロードする
 func (pref *PodcastPref) uploadWeb(ct *minio.Client, web *Web) (err error) {
 	tmpstr := webtmp() + csstmp() + jstmp()
 	wbt := template.Must(template.New("web").Parse(tmpstr))
@@ -209,15 +209,15 @@ func (pref *PodcastPref) uploadWeb(ct *minio.Client, web *Web) (err error) {
 	buf := new(bytes.Buffer)
 
 	if err = wbt.Execute(buf, *web); err != nil {
-		log.Printf("alert: web.htmlのテンプレート展開に失敗しました：%s", err)
+		log.Printf("alert: index.htmlのテンプレート展開に失敗しました：%s", err)
 		return
 	}
 
 	l := int64(buf.Len())
 
-	_, err = ct.PutObject(pref.Bucket, pref.Folder+"/web.html", buf, l, minio.PutObjectOptions{ContentType: "text/html"})
+	_, err = ct.PutObject(pref.Bucket, pref.Folder+"/index.html", buf, l, minio.PutObjectOptions{ContentType: "text/html"})
 	if err != nil {
-		log.Printf("alert: %s のweb.htmlのアップロードに失敗しました：%s", pref.Folder, err)
+		log.Printf("alert: %s のindex.htmlのアップロードに失敗しました：%s", pref.Folder, err)
 	}
 
 	return

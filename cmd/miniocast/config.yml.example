@@ -5,7 +5,7 @@ Storage:  # クラウドストレージ接続のための情報（環境に応�
     HTTPS: true         # ストレージにhttpsでアクセスする場合はtrue
     BucketAsVirtualHost: false      # trueで、バケット名をサブドメインとしてアクセス（S3の新デフォルト）
 
-SavePlayState: false    # trueで、web.htmlの各エピソードの再生状態を
+SavePlayState: false    # trueで、index.htmlの各エピソードの再生状態を
                         # ブラウザーのローカルストレージに保存する
 
 Podcasts:
