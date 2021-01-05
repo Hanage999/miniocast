@@ -10,7 +10,8 @@ import (
 	"github.com/eduncan911/podcast"
 
 	"github.com/comail/colog"
-	"github.com/minio/minio-go"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/spf13/viper"
 )
 
@@ -73,7 +74,10 @@ func Initialize() (casts []*PodcastPref, ct *minio.Client, err error) {
 	}
 
 	// クラウドストレージクライアントの生成
-	ct, err = minio.New(cred["server"], cred["accesskey"], cred["secretkey"], true)
+	ct, err = minio.New(cred["server"], &minio.Options{
+		Creds:  credentials.NewStaticV4(cred["accesskey"], cred["secretkey"], ""),
+		Secure: true,
+	})
 	if err != nil {
 		log.Printf("alert: クラウドストレージクライアントが生成できませんでした：%s", err)
 	}

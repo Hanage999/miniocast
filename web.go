@@ -2,6 +2,7 @@ package miniocast
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"html/template"
 	"log"
@@ -10,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/minio/minio-go"
+	"github.com/minio/minio-go/v7"
 	"golang.org/x/net/html"
 )
 
@@ -80,7 +81,8 @@ func (pref *PodcastPref) newWeb() (web Web) {
 // fetchWebItems は、index.htmlに含まれるアイテムを返す
 // xmlのデコード：https://qiita.com/chanmitsu55/items/8268f559efa694bd1cfd
 func (pref *PodcastPref) fetchWebItems(ct *minio.Client) (items []*WebItem, err error) {
-	reader, err := ct.GetObject(pref.Bucket, pref.Folder+"/index.html", minio.GetObjectOptions{})
+	ctx := context.Background()
+	reader, err := ct.GetObject(ctx, pref.Bucket, pref.Folder+"/index.html", minio.GetObjectOptions{})
 	if err != nil {
 		log.Printf("info: %s のindex.htmlが取得できません：%s", pref.Folder, err)
 		return
@@ -133,8 +135,7 @@ func itemFromNode(n *html.Node) (item WebItem) {
 
 // fetchNewWebItemsInfo は、ストレージに新規に追加された音声ファイルのObjectInfoを返す
 func (pref *PodcastPref) fetchNewWebItemsInfo(ct *minio.Client, oldItems []*WebItem) (fInfos FileInfos, err error) {
-	doneCh := make(chan struct{})
-	defer close(doneCh)
+	ctx := context.Background()
 
 	lastUpd := time.Time{}
 	if len(oldItems) > 0 {
@@ -142,7 +143,11 @@ func (pref *PodcastPref) fetchNewWebItemsInfo(ct *minio.Client, oldItems []*WebI
 		lastUpd, _ = time.Parse(layout, oldItems[0].PubDateFormatted)
 	}
 
-	for object := range ct.ListObjectsV2(pref.Bucket, pref.Folder+"/", true, doneCh) {
+	objectCh := ct.ListObjects(ctx, pref.Bucket, minio.ListObjectsOptions{
+		Prefix:    pref.Folder,
+		Recursive: true,
+	})
+	for object := range objectCh {
 		if object.Err != nil {
 			log.Printf("alert: %s のファイルリストの取得に失敗しました：%s", pref.Folder, object.Err)
 			err = fmt.Errorf("%s", object.Err)
@@ -203,6 +208,7 @@ func parseDate(t time.Time) (upd string) {
 
 // uploadWeb は、クラウドストレージにindex.htmlをアップロードする
 func (pref *PodcastPref) uploadWeb(ct *minio.Client, web *Web) (err error) {
+	ctx := context.Background()
 	tmpstr := webtmp() + csstmp() + jstmp()
 	wbt := template.Must(template.New("web").Parse(tmpstr))
 
@@ -215,7 +221,7 @@ func (pref *PodcastPref) uploadWeb(ct *minio.Client, web *Web) (err error) {
 
 	l := int64(buf.Len())
 
-	_, err = ct.PutObject(pref.Bucket, pref.Folder+"/index.html", buf, l, minio.PutObjectOptions{ContentType: "text/html"})
+	_, err = ct.PutObject(ctx, pref.Bucket, pref.Folder+"/index.html", buf, l, minio.PutObjectOptions{ContentType: "text/html"})
 	if err != nil {
 		log.Printf("alert: %s のindex.htmlのアップロードに失敗しました：%s", pref.Folder, err)
 	}

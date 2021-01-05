@@ -2,6 +2,7 @@ package miniocast
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"encoding/xml"
 	"fmt"
@@ -13,7 +14,7 @@ import (
 	"time"
 
 	"github.com/eduncan911/podcast"
-	"github.com/minio/minio-go"
+	"github.com/minio/minio-go/v7"
 )
 
 // UpdateRSS は、フィードを作成あるいは更新する
@@ -75,7 +76,8 @@ func (pref *PodcastPref) newRSS() (rss *podcast.Podcast) {
 // fetchRSSItems は、feed.rssに含まれるRSSアイテムを返す
 // xmlのデコード：https://qiita.com/chanmitsu55/items/8268f559efa694bd1cfd
 func (pref *PodcastPref) fetchRSSItems(ct *minio.Client) (items []*podcast.Item, err error) {
-	reader, err := ct.GetObject(pref.Bucket, pref.Folder+"/feed.rss", minio.GetObjectOptions{})
+	ctx := context.Background()
+	reader, err := ct.GetObject(ctx, pref.Bucket, pref.Folder+"/feed.rss", minio.GetObjectOptions{})
 	if err != nil {
 		log.Printf("info: %s のRSSファイルが取得できません：%s", pref.Folder, err)
 		return
@@ -107,8 +109,7 @@ func (pref *PodcastPref) fetchRSSItems(ct *minio.Client) (items []*podcast.Item,
 
 // fetchNewRSSItemsInfo は、ストレージに新規に追加された音声ファイルのObjectInfoを返す
 func (pref *PodcastPref) fetchNewRSSItemsInfo(ct *minio.Client, oldItems []*podcast.Item) (fInfos FileInfos, err error) {
-	doneCh := make(chan struct{})
-	defer close(doneCh)
+	ctx := context.Background()
 
 	lastUpd := time.Time{}
 	if len(oldItems) > 0 {
@@ -116,7 +117,11 @@ func (pref *PodcastPref) fetchNewRSSItemsInfo(ct *minio.Client, oldItems []*podc
 		lastUpd, _ = time.Parse(layout, oldItems[0].PubDateFormatted)
 	}
 
-	for object := range ct.ListObjectsV2(pref.Bucket, pref.Folder+"/", true, doneCh) {
+	objectCh := ct.ListObjects(ctx, pref.Bucket, minio.ListObjectsOptions{
+		Prefix:    pref.Folder,
+		Recursive: true,
+	})
+	for object := range objectCh {
 		if object.Err != nil {
 			log.Printf("alert: %s のファイルリストの取得に失敗しました：%s", pref.Folder, object.Err)
 			err = fmt.Errorf("%s", object.Err)
@@ -175,9 +180,10 @@ func (pref *PodcastPref) itemsFromInfo(fInfo FileInfos, existingItems []*podcast
 
 // uploadRSS は、クラウドストレージにfeed.rssをアップロードする
 func (pref *PodcastPref) uploadRSS(ct *minio.Client, rss *podcast.Podcast) (err error) {
+	ctx := context.Background()
 	bts := rss.Bytes()
 	reader := bytes.NewReader(bts)
-	_, err = ct.PutObject(pref.Bucket, pref.Folder+"/feed.rss", reader, int64(binary.Size(bts)), minio.PutObjectOptions{ContentType: "application/rss+xml"})
+	_, err = ct.PutObject(ctx, pref.Bucket, pref.Folder+"/feed.rss", reader, int64(binary.Size(bts)), minio.PutObjectOptions{ContentType: "application/rss+xml"})
 	if err != nil {
 		log.Printf("alert: %s のrssファイルのアップロードに失敗しました：%s", pref.Folder, err)
 	}

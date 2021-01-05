@@ -1,6 +1,6 @@
 package miniocast
 
-import "github.com/minio/minio-go"
+import "github.com/minio/minio-go/v7"
 
 // FileInfos は、クラウドストレージオブジェクトの情報のスライス
 type FileInfos []minio.ObjectInfo
