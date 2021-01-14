@@ -154,11 +154,9 @@ func (pref *PodcastPref) itemsFromInfo(fInfo FileInfos, existingItems []*podcast
 	for i, info := range fInfo {
 		item := podcast.Item{}
 		fn := strings.TrimLeft(info.Key, pref.Folder+"/")
-		id, title, sum := getDetailsFromName(fn)
-		item.ISubtitle = sum
-		// Description に何か値を入れないと動かない。
-		item.Description = "　"
+		id, title, des := getDetailsFromName(fn)
 		idst := ""
+		item.Description = des
 		if id != 0 {
 			idst = " 第" + strconv.Itoa(id) + "回"
 		} else if pref.Serial == true {

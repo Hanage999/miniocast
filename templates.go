@@ -43,7 +43,7 @@ func webtmp() string {
 {{- range $item := .Items -}}
 <div class=episode data-timestamp="{{$item.PubDateFormatted}}">
     <a class=title href="{{.FileURL}}">{{$item.Title}}</a>
-    <div class=subtitle>{{$item.Subtitle}}</div>
+    <div class=description>{{$item.Description}}</div>
 </div>
 {{- end -}}
 </main>
@@ -155,7 +155,7 @@ img {
   color: #339900;
 }
 
-.subtitle, .donate {
+.description, .donate {
   color: #3C4043;
   font-size: 14px;
   margin-top: .3em;

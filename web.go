@@ -31,7 +31,6 @@ type WebItem struct {
 	FileURL          string
 	PubDateFormatted string
 	Title            string
-	Subtitle         string
 	Description      string
 }
 
@@ -129,7 +128,7 @@ func itemFromNode(n *html.Node) (item WebItem) {
 	}
 	item.Title = t.FirstChild.Data
 	d := t.NextSibling.NextSibling
-	item.Subtitle = d.FirstChild.Data
+	item.Description = d.FirstChild.Data
 
 	return
 }
@@ -181,9 +180,9 @@ func (pref *PodcastPref) webItemsFromInfo(fInfo FileInfos, existingItems []*WebI
 	for i, info := range fInfo {
 		item := WebItem{}
 		fn := strings.TrimLeft(info.Key, pref.Folder+"/")
-		id, title, sub := getDetailsFromName(fn)
+		id, title, des := getDetailsFromName(fn)
 		idst := ""
-		item.Subtitle = sub
+		item.Description = des
 		if id != 0 {
 			idst = " 第" + strconv.Itoa(id) + "回"
 		} else if pref.Serial == true {
