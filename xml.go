@@ -6,7 +6,6 @@ import (
 	"encoding/binary"
 	"encoding/xml"
 	"fmt"
-	"io"
 	"log"
 	"sort"
 	"strconv"
@@ -16,6 +15,12 @@ import (
 	"github.com/eduncan911/podcast"
 	"github.com/minio/minio-go/v7"
 )
+
+// RSS はfeed.rss のデータ全体。
+type RSS struct {
+	XMLName xml.Name         `xml:"rss"`
+	Channel *podcast.Podcast `xml:"channel"`
+}
 
 // UpdateRSS は、フィードを作成あるいは更新する
 func (pref *PodcastPref) UpdateRSS(ct *minio.Client) {
@@ -84,26 +89,12 @@ func (pref *PodcastPref) fetchRSSItems(ct *minio.Client) (items []*podcast.Item,
 	}
 	defer reader.Close()
 
-	decoder := xml.NewDecoder(reader)
-	for {
-		token, err := decoder.Token()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			log.Printf("info: %s のxmlのデコードに失敗しました：%s", pref.Folder, err)
-			return items, err
-		}
-		switch se := token.(type) {
-		case xml.StartElement:
-			if se.Name.Local == "item" {
-				var item podcast.Item
-				decoder.DecodeElement(&item, &se)
-				items = append(items, &item)
-			}
-		}
+	var rss RSS
+	if err = xml.NewDecoder(reader).Decode(&rss); err != nil {
+		log.Printf("info: xmlデータを構造体に読み込めませんでした：%v", err)
+		return
 	}
-
+	items = rss.Channel.Items
 	return
 }
 
@@ -154,9 +145,11 @@ func (pref *PodcastPref) itemsFromInfo(fInfo FileInfos, existingItems []*podcast
 	for i, info := range fInfo {
 		item := podcast.Item{}
 		fn := strings.TrimLeft(info.Key, pref.Folder+"/")
-		id, title, des := getDetailsFromName(fn)
+		id, title, sub := getDetailsFromName(fn)
 		idst := ""
-		item.Description = des
+		// Descriptionは空にできない。
+		item.Description = "　"
+		item.ISubtitle = sub
 		if id != 0 {
 			idst = " 第" + strconv.Itoa(id) + "回"
 		} else if pref.Serial == true {
