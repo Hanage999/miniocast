@@ -145,7 +145,7 @@ func (pref *PodcastPref) fetchNewWebItemsInfo(ct *minio.Client, oldItems []*WebI
 	}
 
 	objectCh := ct.ListObjects(ctx, pref.Bucket, minio.ListObjectsOptions{
-		Prefix:    pref.Folder,
+		Prefix:    pref.Folder + "/",
 		Recursive: true,
 	})
 	for object := range objectCh {

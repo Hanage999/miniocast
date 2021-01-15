@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"encoding/xml"
 	"fmt"
+	"io"
 	"log"
 	"sort"
 	"strconv"
@@ -18,37 +19,36 @@ import (
 
 // RSS はfeed.rss のデータ全体。
 type RSS struct {
-	XMLName xml.Name         `xml:"rss"`
-	Channel *podcast.Podcast `xml:"channel"`
+	XMLName xml.Name        `xml:"rss"`
+	Channel podcast.Podcast `xml:"channel"`
 }
 
 // UpdateRSS は、フィードを作成あるいは更新する
 func (pref *PodcastPref) UpdateRSS(ct *minio.Client) {
-	items, err := pref.fetchRSSItems(ct)
+	lastupdate, err := pref.fetchRSSLastupdate(ct)
 	if err != nil {
 		log.Printf("info: %s のfeed.rssが読み込めませんでした。：%s", pref.Folder, err)
 	}
 
-	newInfo, err := pref.fetchNewRSSItemsInfo(ct, items)
+	infos, err := pref.renewedList(ct, lastupdate)
 	if err != nil {
 		log.Printf("info: %s の中の新規音声ファイルリストが取得できませんでした：%s", pref.Folder, err)
 		return
 	}
 
-	if len(newInfo) > 0 {
+	if len(infos) > 0 {
 		rss := pref.newRSS()
 
-		newItems, err := pref.itemsFromInfo(newInfo, items)
+		items, err := pref.itemsFromInfo(infos)
 		if err != nil {
 			log.Printf("info: %s の新規アイテムの作成に失敗しました：%s", pref.Folder, err)
 			return
 		}
 
-		for _, item := range newItems {
+		for _, item := range items {
 			_, _ = rss.AddItem(item)
 		}
 
-		rss.Items = append(rss.Items, items...)
 		now := time.Now()
 		rss.AddPubDate(&now)
 		rss.AddLastBuildDate(&now)
@@ -78,9 +78,8 @@ func (pref *PodcastPref) newRSS() (rss *podcast.Podcast) {
 	return
 }
 
-// fetchRSSItems は、feed.rssに含まれるRSSアイテムを返す
-// xmlのデコード：https://qiita.com/chanmitsu55/items/8268f559efa694bd1cfd
-func (pref *PodcastPref) fetchRSSItems(ct *minio.Client) (items []*podcast.Item, err error) {
+// fetchRSSLastupdate は、feed.rssの最新アイテムの更新日時を返す
+func (pref *PodcastPref) fetchRSSLastupdate(ct *minio.Client) (lastupdate time.Time, err error) {
 	ctx := context.Background()
 	reader, err := ct.GetObject(ctx, pref.Bucket, pref.Folder+"/feed.rss", minio.GetObjectOptions{})
 	if err != nil {
@@ -89,27 +88,53 @@ func (pref *PodcastPref) fetchRSSItems(ct *minio.Client) (items []*podcast.Item,
 	}
 	defer reader.Close()
 
-	var rss RSS
-	if err = xml.NewDecoder(reader).Decode(&rss); err != nil {
-		log.Printf("info: xmlデータを構造体に読み込めませんでした：%v", err)
-		return
+	/*	var rss RSS
+		if err = xml.NewDecoder(reader).Decode(&rss); err != nil {
+			log.Printf("info: xmlデータを構造体に読み込めませんでした：%v", err)
+			return
+		}
+		updstr := rss.Channel.LastBuildDate
+
+		lastupdate, _ = time.Parse("Mon, 02 Jan 2006 15:04:05 -0700", updstr)
+	*/
+	var items []*podcast.Item
+	decoder := xml.NewDecoder(reader)
+	for {
+		token, err := decoder.Token()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Printf("info: %s のxmlのデコードに失敗しました：%s", pref.Folder, err)
+			return time.Time{}, err
+		}
+		switch se := token.(type) {
+		case xml.StartElement:
+			if se.Name.Local == "item" {
+				var item podcast.Item
+				decoder.DecodeElement(&item, &se)
+				items = append(items, &item)
+			}
+		}
 	}
-	items = rss.Channel.Items
+
+	if len(items) > 0 {
+		updstr := items[0].PubDateFormatted
+		lastupdate, _ = time.Parse("Mon, 02 Jan 2006 15:04:05 -0700", updstr)
+	}
+
 	return
 }
 
-// fetchNewRSSItemsInfo は、ストレージに新規に追加された音声ファイルのObjectInfoを返す
-func (pref *PodcastPref) fetchNewRSSItemsInfo(ct *minio.Client, oldItems []*podcast.Item) (fInfos FileInfos, err error) {
+// renewedList は、ストレージに新しくファイルが追加されたら全ファイルリストを返す
+func (pref *PodcastPref) renewedList(ct *minio.Client, lastupdate time.Time) (fInfos FileInfos, err error) {
 	ctx := context.Background()
 
-	lastUpd := time.Time{}
-	if len(oldItems) > 0 {
-		layout := "Mon, 02 Jan 2006 15:04:05 -0700"
-		lastUpd, _ = time.Parse(layout, oldItems[0].PubDateFormatted)
-	}
+	new := false
+	var infos FileInfos
 
 	objectCh := ct.ListObjects(ctx, pref.Bucket, minio.ListObjectsOptions{
-		Prefix:    pref.Folder,
+		Prefix:    pref.Folder + "/",
 		Recursive: true,
 	})
 	for object := range objectCh {
@@ -120,29 +145,30 @@ func (pref *PodcastPref) fetchNewRSSItemsInfo(ct *minio.Client, oldItems []*podc
 		}
 		k := strings.ToLower(object.Key)
 		if strings.HasSuffix(k, "mp3") || strings.HasSuffix(k, "m4a") || strings.HasSuffix(k, "m4b") {
+			infos = append(infos, object)
 			newDate := object.LastModified.Truncate(time.Second)
-			if lastUpd.Before(newDate) && !lastUpd.Equal(newDate) {
-				fInfos = append(fInfos, object)
+			if lastupdate.Before(newDate) && !lastupdate.Equal(newDate) {
+				new = true
 			}
 		}
 	}
 
-	sort.Sort(fInfos)
+	if new {
+		sort.Sort(infos)
+		fInfos = infos
+	}
 
 	return
 }
 
-// itemsFromInfo は、音声ファイルのObjectInfoをもとに新規RSSアイテムの構造体を生成する
-func (pref *PodcastPref) itemsFromInfo(fInfo FileInfos, existingItems []*podcast.Item) (newItems []podcast.Item, err error) {
-	lastID := len(existingItems)
-	if lastID > 0 {
-		id, _, _ := getDetailsFromName(existingItems[0].Title)
-		if id != 0 {
-			lastID = id
-		}
+// itemsFromInfo は、音声ファイルのObjectInfoをもとにRSSアイテムの構造体を生成する
+func (pref *PodcastPref) itemsFromInfo(fInfos FileInfos) (items []podcast.Item, err error) {
+	lastID := len(fInfos)
+	if lastID == 0 {
+		return
 	}
 
-	for i, info := range fInfo {
+	for i, info := range fInfos {
 		item := podcast.Item{}
 		fn := strings.TrimLeft(info.Key, pref.Folder+"/")
 		id, title, sub := getDetailsFromName(fn)
@@ -153,7 +179,7 @@ func (pref *PodcastPref) itemsFromInfo(fInfo FileInfos, existingItems []*podcast
 		if id != 0 {
 			idst = " 第" + strconv.Itoa(id) + "回"
 		} else if pref.Serial == true {
-			idst = " 第" + strconv.Itoa(lastID+len(fInfo)-i) + "回"
+			idst = " 第" + strconv.Itoa(lastID-i) + "回"
 		}
 		item.Title = title + idst
 		url := pref.Link + strings.TrimLeft(info.Key, pref.Folder)
@@ -165,7 +191,7 @@ func (pref *PodcastPref) itemsFromInfo(fInfo FileInfos, existingItems []*podcast
 		// https://qiita.com/RunEagler/items/008e2b304f27b7fb168a
 		// だから、&info.LastModifiedを引数に指定しても、それは最終的に全て同じ値になってしまう
 		item.AddPubDate(&upd)
-		newItems = append(newItems, item)
+		items = append(items, item)
 	}
 
 	return
