@@ -140,8 +140,14 @@ func (pref *PodcastPref) fetchNewWebItemsInfo(ct *minio.Client, oldItems []*WebI
 
 	lastUpd := time.Time{}
 	if len(oldItems) > 0 {
-		layout := "Mon, 02 Jan 2006 15:04:05 -0700"
-		lastUpd, _ = time.Parse(layout, oldItems[0].PubDateFormatted)
+		ni := len(oldItems)
+		lastUpd, _ = time.Parse("Mon, 02 Jan 2006 15:04:05 -0700", oldItems[0].PubDateFormatted)
+		for i := 1; i < ni; i++ {
+			upd, _ := time.Parse("Mon, 02 Jan 2006 15:04:05 -0700", oldItems[i].PubDateFormatted)
+			if lastUpd.Before(upd) {
+				lastUpd = upd
+			}
+		}
 	}
 
 	objectCh := ct.ListObjects(ctx, pref.Bucket, minio.ListObjectsOptions{

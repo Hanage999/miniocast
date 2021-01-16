@@ -119,8 +119,14 @@ func (pref *PodcastPref) fetchRSSLastupdate(ct *minio.Client) (lastupdate time.T
 	}
 
 	if len(items) > 0 {
-		updstr := items[0].PubDateFormatted
-		lastupdate, _ = time.Parse("Mon, 02 Jan 2006 15:04:05 -0700", updstr)
+		ni := len(items)
+		lastupdate, _ = time.Parse("Mon, 02 Jan 2006 15:04:05 -0700", items[0].PubDateFormatted)
+		for i := 1; i < ni; i++ {
+			upd, _ := time.Parse("Mon, 02 Jan 2006 15:04:05 -0700", items[i].PubDateFormatted)
+			if lastupdate.Before(upd) {
+				lastupdate = upd
+			}
+		}
 	}
 
 	return
