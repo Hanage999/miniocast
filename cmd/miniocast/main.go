@@ -23,8 +23,11 @@ func run() (exitCode int) {
 
 	for _, pref := range prefs {
 		if pref.Active {
-			pref.UpdateRSS(ct)
-			pref.UpdateWeb(ct)
+			if err := pref.UpdatePodcast(ct); err != nil {
+				log.Printf("alert: %s の更新に失敗しました：%s", pref.Title, err)
+				exitCode = 1
+				return
+			}
 		} else {
 			log.Printf("info: %s は、更新を停止しています", pref.Title)
 		}

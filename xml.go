@@ -5,10 +5,8 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/xml"
-	"fmt"
 	"io"
 	"log"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -24,39 +22,26 @@ type RSS struct {
 }
 
 // UpdateRSS は、フィードを作成あるいは更新する
-func (pref *PodcastPref) UpdateRSS(ct *minio.Client) {
-	lastupdate, err := pref.fetchRSSLastupdate(ct)
-	if err != nil {
-		log.Printf("info: %s のfeed.rssが読み込めませんでした。：%s", pref.Folder, err)
-	}
+func (pref *PodcastPref) UpdateRSS(infos FileInfos, ct *minio.Client) {
+	rss := pref.newRSS()
 
-	infos, err := pref.renewedList(ct, lastupdate)
+	items, err := pref.itemsFromInfo(infos)
 	if err != nil {
-		log.Printf("info: %s の中の新規音声ファイルリストが取得できませんでした：%s", pref.Folder, err)
+		log.Printf("info: %s の新規アイテムの作成に失敗しました：%s", pref.Folder, err)
 		return
 	}
 
-	if len(infos) > 0 {
-		rss := pref.newRSS()
+	for _, item := range items {
+		_, _ = rss.AddItem(item)
+	}
 
-		items, err := pref.itemsFromInfo(infos)
-		if err != nil {
-			log.Printf("info: %s の新規アイテムの作成に失敗しました：%s", pref.Folder, err)
-			return
-		}
+	now := time.Now()
+	rss.AddPubDate(&now)
+	rss.AddLastBuildDate(&now)
 
-		for _, item := range items {
-			_, _ = rss.AddItem(item)
-		}
-
-		now := time.Now()
-		rss.AddPubDate(&now)
-		rss.AddLastBuildDate(&now)
-
-		// log.Printf("info: %s", rss)
-		if err := pref.uploadRSS(ct, rss); err != nil {
-			log.Printf("info: feed.rssのアップロードに失敗しました：%s", err)
-		}
+	// log.Printf("info: %s", rss)
+	if err := pref.uploadRSS(ct, rss); err != nil {
+		log.Printf("info: feed.rssのアップロードに失敗しました：%s", err)
 	}
 
 	return
@@ -78,8 +63,8 @@ func (pref *PodcastPref) newRSS() (rss *podcast.Podcast) {
 	return
 }
 
-// fetchRSSLastupdate は、feed.rssの最新アイテムの更新日時を返す
-func (pref *PodcastPref) fetchRSSLastupdate(ct *minio.Client) (lastupdate time.Time, err error) {
+// fetchExistingIndexes は、既存のアイテムのインデックスを返す
+func (pref *PodcastPref) fetchExistingIndexes(ct *minio.Client) (olds Indexes, err error) {
 	ctx := context.Background()
 	reader, err := ct.GetObject(ctx, pref.Bucket, pref.Folder+"/feed.rss", minio.GetObjectOptions{})
 	if err != nil {
@@ -88,15 +73,6 @@ func (pref *PodcastPref) fetchRSSLastupdate(ct *minio.Client) (lastupdate time.T
 	}
 	defer reader.Close()
 
-	/*	var rss RSS
-		if err = xml.NewDecoder(reader).Decode(&rss); err != nil {
-			log.Printf("info: xmlデータを構造体に読み込めませんでした：%v", err)
-			return
-		}
-		updstr := rss.Channel.LastBuildDate
-
-		lastupdate, _ = time.Parse("Mon, 02 Jan 2006 15:04:05 -0700", updstr)
-	*/
 	var items []*podcast.Item
 	decoder := xml.NewDecoder(reader)
 	for {
@@ -106,7 +82,7 @@ func (pref *PodcastPref) fetchRSSLastupdate(ct *minio.Client) (lastupdate time.T
 		}
 		if err != nil {
 			log.Printf("info: %s のxmlのデコードに失敗しました：%s", pref.Folder, err)
-			return time.Time{}, err
+			return []Index{}, err
 		}
 		switch se := token.(type) {
 		case xml.StartElement:
@@ -118,50 +94,11 @@ func (pref *PodcastPref) fetchRSSLastupdate(ct *minio.Client) (lastupdate time.T
 		}
 	}
 
-	if len(items) > 0 {
-		ni := len(items)
-		lastupdate, _ = time.Parse("Mon, 02 Jan 2006 15:04:05 -0700", items[0].PubDateFormatted)
-		for i := 1; i < ni; i++ {
-			upd, _ := time.Parse("Mon, 02 Jan 2006 15:04:05 -0700", items[i].PubDateFormatted)
-			if lastupdate.Before(upd) {
-				lastupdate = upd
-			}
-		}
-	}
-
-	return
-}
-
-// renewedList は、ストレージに新しくファイルが追加されたら全ファイルリストを返す
-func (pref *PodcastPref) renewedList(ct *minio.Client, lastupdate time.Time) (fInfos FileInfos, err error) {
-	ctx := context.Background()
-
-	new := false
-	var infos FileInfos
-
-	objectCh := ct.ListObjects(ctx, pref.Bucket, minio.ListObjectsOptions{
-		Prefix:    pref.Folder + "/",
-		Recursive: true,
-	})
-	for object := range objectCh {
-		if object.Err != nil {
-			log.Printf("alert: %s のファイルリストの取得に失敗しました：%s", pref.Folder, object.Err)
-			err = fmt.Errorf("%s", object.Err)
-			return
-		}
-		k := strings.ToLower(object.Key)
-		if strings.HasSuffix(k, "mp3") || strings.HasSuffix(k, "m4a") || strings.HasSuffix(k, "m4b") {
-			infos = append(infos, object)
-			newDate := object.LastModified.Truncate(time.Second)
-			if lastupdate.Before(newDate) && !lastupdate.Equal(newDate) {
-				new = true
-			}
-		}
-	}
-
-	if new {
-		sort.Sort(infos)
-		fInfos = infos
+	for _, item := range items {
+		idx := Index{}
+		idx.FileLink = item.Link
+		idx.Updated = item.PubDateFormatted
+		olds = append(olds, idx)
 	}
 
 	return

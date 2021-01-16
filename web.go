@@ -3,10 +3,8 @@ package miniocast
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"html/template"
 	"log"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -36,33 +34,20 @@ type WebItem struct {
 }
 
 // UpdateWeb は、フィードを作成あるいは更新する
-func (pref *PodcastPref) UpdateWeb(ct *minio.Client) {
-	items, err := pref.fetchWebItems(ct)
-	if err != nil {
-		log.Printf("info: %s のindex.htmlが読み込めませんでした。：%s", pref.Folder, err)
-	}
+func (pref *PodcastPref) UpdateWeb(infos FileInfos, ct *minio.Client) {
+	web := pref.newWeb()
 
-	newInfo, err := pref.fetchNewWebItemsInfo(ct, items)
+	newItems, err := pref.webItemsFromInfo(infos)
 	if err != nil {
-		log.Printf("info: %s の中の新規音声ファイルリストが取得できませんでした：%s", pref.Folder, err)
+		log.Printf("info: %s の新規Webアイテムの作成に失敗しました：%s", pref.Folder, err)
 		return
 	}
 
-	if len(newInfo) > 0 {
-		web := pref.newWeb()
+	web.Items = newItems
 
-		newItems, err := pref.webItemsFromInfo(newInfo, items)
-		if err != nil {
-			log.Printf("info: %s の新規Webアイテムの作成に失敗しました：%s", pref.Folder, err)
-			return
-		}
-
-		web.Items = append(newItems, items...)
-
-		// log.Printf("info: %v", web)
-		if err := pref.uploadWeb(ct, &web); err != nil {
-			log.Printf("info: index.htmlのアップロードに失敗しました：%s", err)
-		}
+	// log.Printf("info: %v", web)
+	if err := pref.uploadWeb(ct, &web); err != nil {
+		log.Printf("info: index.htmlのアップロードに失敗しました：%s", err)
 	}
 
 	return
@@ -80,8 +65,7 @@ func (pref *PodcastPref) newWeb() (web Web) {
 }
 
 // fetchWebItems は、index.htmlに含まれるアイテムを返す
-// xmlのデコード：https://qiita.com/chanmitsu55/items/8268f559efa694bd1cfd
-func (pref *PodcastPref) fetchWebItems(ct *minio.Client) (items []*WebItem, err error) {
+func (pref *PodcastPref) fetchExistingWebIndexes(ct *minio.Client) (olds Indexes, err error) {
 	ctx := context.Background()
 	reader, err := ct.GetObject(ctx, pref.Bucket, pref.Folder+"/index.html", minio.GetObjectOptions{})
 	if err != nil {
@@ -100,9 +84,16 @@ func (pref *PodcastPref) fetchWebItems(ct *minio.Client) (items []*WebItem, err 
 	f = func(n *html.Node) {
 		if n.Type == html.ElementNode && n.Data == "div" {
 			for _, a := range n.Attr {
-				if a.Key == "class" && a.Val == "episode" {
-					item := itemFromNode(n)
-					items = append(items, &item)
+				if a.Key == "data-timestamp" {
+					var idx Index
+					idx.Updated = a.Val
+					atag := n.FirstChild
+					for _, b := range atag.Attr {
+						if b.Key == "href" {
+							idx.FileLink = b.Val
+						}
+					}
+					olds = append(olds, idx)
 				}
 			}
 		}
@@ -134,57 +125,14 @@ func itemFromNode(n *html.Node) (item WebItem) {
 	return
 }
 
-// fetchNewWebItemsInfo は、ストレージに新規に追加された音声ファイルのObjectInfoを返す
-func (pref *PodcastPref) fetchNewWebItemsInfo(ct *minio.Client, oldItems []*WebItem) (fInfos FileInfos, err error) {
-	ctx := context.Background()
-
-	lastUpd := time.Time{}
-	if len(oldItems) > 0 {
-		ni := len(oldItems)
-		lastUpd, _ = time.Parse("Mon, 02 Jan 2006 15:04:05 -0700", oldItems[0].PubDateFormatted)
-		for i := 1; i < ni; i++ {
-			upd, _ := time.Parse("Mon, 02 Jan 2006 15:04:05 -0700", oldItems[i].PubDateFormatted)
-			if lastUpd.Before(upd) {
-				lastUpd = upd
-			}
-		}
-	}
-
-	objectCh := ct.ListObjects(ctx, pref.Bucket, minio.ListObjectsOptions{
-		Prefix:    pref.Folder + "/",
-		Recursive: true,
-	})
-	for object := range objectCh {
-		if object.Err != nil {
-			log.Printf("alert: %s のファイルリストの取得に失敗しました：%s", pref.Folder, object.Err)
-			err = fmt.Errorf("%s", object.Err)
-			return
-		}
-		k := strings.ToLower(object.Key)
-		if strings.HasSuffix(k, "mp3") || strings.HasSuffix(k, "m4a") || strings.HasSuffix(k, "m4b") {
-			newDate := object.LastModified.Truncate(time.Second)
-			if lastUpd.Before(newDate) && !lastUpd.Equal(newDate) {
-				fInfos = append(fInfos, object)
-			}
-		}
-	}
-
-	sort.Sort(fInfos)
-
-	return
-}
-
 // webItemsFromInfo は、音声ファイルのObjectInfoをもとに新規アイテムの構造体を生成する
-func (pref *PodcastPref) webItemsFromInfo(fInfo FileInfos, existingItems []*WebItem) (newItems []*WebItem, err error) {
-	lastID := len(existingItems)
-	if lastID > 0 {
-		id, _, _ := getDetailsFromName(existingItems[0].Title)
-		if id != 0 {
-			lastID = id
-		}
+func (pref *PodcastPref) webItemsFromInfo(fInfos FileInfos) (newItems []*WebItem, err error) {
+	lastID := len(fInfos)
+	if lastID == 0 {
+		return
 	}
 
-	for i, info := range fInfo {
+	for i, info := range fInfos {
 		item := WebItem{}
 		fn := strings.TrimLeft(info.Key, pref.Folder+"/")
 		id, title, sub := getDetailsFromName(fn)
@@ -193,7 +141,7 @@ func (pref *PodcastPref) webItemsFromInfo(fInfo FileInfos, existingItems []*WebI
 		if id != 0 {
 			idst = " 第" + strconv.Itoa(id) + "回"
 		} else if pref.Serial == true {
-			idst = " 第" + strconv.Itoa(lastID+len(fInfo)-i) + "回"
+			idst = " 第" + strconv.Itoa(lastID+len(fInfos)-i) + "回"
 		}
 		item.Title = title + idst
 		item.FileURL = pref.Link + strings.TrimLeft(info.Key, pref.Folder)
