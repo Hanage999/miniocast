@@ -33,7 +33,7 @@ type WebItem struct {
 	Description      string
 }
 
-// UpdateWeb は、フィードを作成あるいは更新する
+// UpdateWeb は、index.htmlを作成あるいは更新する
 func (pref *PodcastPref) UpdateWeb(infos FileInfos, ct *minio.Client) {
 	web := pref.newWeb()
 
@@ -45,7 +45,6 @@ func (pref *PodcastPref) UpdateWeb(infos FileInfos, ct *minio.Client) {
 
 	web.Items = newItems
 
-	// log.Printf("info: %v", web)
 	if err := pref.uploadWeb(ct, &web); err != nil {
 		log.Printf("info: index.htmlのアップロードに失敗しました：%s", err)
 	}
@@ -61,48 +60,6 @@ func (pref *PodcastPref) newWeb() (web Web) {
 	web.Description = pref.Description
 	web.Link = pref.Link
 	web.SavePlayState = pref.SavePlayState
-	return
-}
-
-// fetchWebItems は、index.htmlに含まれるアイテムを返す
-func (pref *PodcastPref) fetchExistingWebIndexes(ct *minio.Client) (olds Indexes, err error) {
-	ctx := context.Background()
-	reader, err := ct.GetObject(ctx, pref.Bucket, pref.Folder+"/index.html", minio.GetObjectOptions{})
-	if err != nil {
-		log.Printf("info: %s のindex.htmlが取得できません：%s", pref.Folder, err)
-		return
-	}
-	defer reader.Close()
-
-	root, err := html.Parse(reader)
-	if err != nil {
-		log.Printf("info: %s のindex.htmlがパースできません：%s", pref.Folder, err)
-		return
-	}
-
-	var f func(*html.Node)
-	f = func(n *html.Node) {
-		if n.Type == html.ElementNode && n.Data == "div" {
-			for _, a := range n.Attr {
-				if a.Key == "data-timestamp" {
-					var idx Index
-					idx.Updated = a.Val
-					atag := n.FirstChild
-					for _, b := range atag.Attr {
-						if b.Key == "href" {
-							idx.FileLink = b.Val
-						}
-					}
-					olds = append(olds, idx)
-				}
-			}
-		}
-		for c := n.FirstChild; c != nil; c = c.NextSibling {
-			f(c)
-		}
-	}
-	f(root)
-
 	return
 }
 

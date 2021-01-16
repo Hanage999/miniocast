@@ -82,7 +82,7 @@ func (pref *PodcastPref) fetchExistingIndexes(ct *minio.Client) (olds Indexes, e
 		}
 		if err != nil {
 			log.Printf("info: %s のxmlのデコードに失敗しました：%s", pref.Folder, err)
-			return []Index{}, err
+			return Indexes{}, err
 		}
 		switch se := token.(type) {
 		case xml.StartElement:
