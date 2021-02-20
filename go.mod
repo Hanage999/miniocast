@@ -1,6 +1,6 @@
 module github.com/hanage999/miniocast
 
-go 1.15
+go 1.16
 
 require (
 	github.com/comail/colog v0.0.0-20160416085026-fba8e7b1f46c

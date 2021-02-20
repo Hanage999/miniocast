@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang=ja>
+
+<head>
+    <meta charset=utf-8>
+    <meta name=viewport content="width=device-width,initial-scale=1">
+    <title>{{.Title}}</title>
+    <link rel="alternate" type="application/rss+xml" title="{{.Title}}" href="{{.Link}}/feed.rss" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:image" content="{{.Link}}/image.jpg" />
+    <meta property="og:site_name" content="{{.Title}}" />
+    <meta property="og:image" content="{{.Link}}/image.jpg" />
+    <meta property="og:url" content="{{.Link}}/index.html" />
+    <meta property="og:type" content="blog" />
+    <meta property="og:title" content="{{.Title}}" />
+    <meta property="og:description" content="{{.Description}}" />
+</head>
+
+<body>
+
+<script>
+{{template "script" .}}
+</script>
+
+<style>
+{{template "styles"}}
+</style>
+
+<header>
+    <div id="header-inner">
+        <a id="banner" href="{{.Link}}/index.html">{{.Title}}</a>
+        <div class="site-description">{{.Description}}</div>
+        <div class="toppic"><img src="{{.Link}}/image.jpg"/></div>
+    </div>
+</header>
+
+<main>
+{{- range $item := .Items -}}
+<div class=episode data-timestamp="{{$item.PubDateFormatted}}">
+    <a class=title href="{{.FileURL}}">{{$item.Title}}</a>
+    <div class=subtitle>{{$item.Subtitle}}</div>
+</div>
+{{- end -}}
+</main>
+</body>
+</html>

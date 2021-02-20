@@ -9,9 +9,21 @@ import (
 	"strings"
 	"time"
 
+	// for templates
+	_ "embed"
+
 	"github.com/minio/minio-go/v7"
 	"golang.org/x/net/html"
 )
+
+//go:embed templates/web.gtpl
+var webtmp string
+
+//go:embed templates/css.gtpl
+var csstmp string
+
+//go:embed templates/js.gtpl
+var jstmp string
 
 // Web は、index.htmlに含めるデータを格納する
 type Web struct {
@@ -121,7 +133,8 @@ func parseDate(t time.Time) (upd string) {
 // uploadWeb は、クラウドストレージにindex.htmlをアップロードする
 func (pref *PodcastPref) uploadWeb(ct *minio.Client, web *Web) (err error) {
 	ctx := context.Background()
-	tmpstr := webtmp() + csstmp() + jstmp()
+
+	tmpstr := webtmp + csstmp + jstmp
 	wbt := template.Must(template.New("web").Parse(tmpstr))
 
 	buf := new(bytes.Buffer)
