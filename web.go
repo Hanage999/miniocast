@@ -17,6 +17,7 @@ import (
 //go:embed templates
 var webtpl embed.FS
 
+// Web は、index.htmlに含めるデータを格納する
 type Web struct {
 	Title         string
 	Subtitle      string
