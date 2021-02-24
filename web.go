@@ -3,7 +3,7 @@ package miniocast
 import (
 	"bytes"
 	"context"
-	"embed"
+	_ "embed" // for embedding templates
 	"html/template"
 	"log"
 	"strconv"
@@ -14,8 +14,14 @@ import (
 	"golang.org/x/net/html"
 )
 
-//go:embed templates
-var webtpl embed.FS
+//go:embed templates/web.html.tmpl
+var webstr string
+
+//go:embed templates/web.css.tmpl
+var cssstr string
+
+//go:embed templates/web.js.tmpl
+var jsstr string
 
 // Web は、index.htmlに含めるデータを格納する
 type Web struct {
@@ -126,7 +132,8 @@ func parseDate(t time.Time) (upd string) {
 func (pref *PodcastPref) uploadWeb(ct *minio.Client, web *Web) (err error) {
 	ctx := context.Background()
 
-	wbt := template.Must(template.New("web").ParseFS(webtpl, "templates/*"))
+	tmpstr := webstr + cssstr + jsstr
+	wbt := template.Must(template.New("web").Parse(tmpstr))
 	buf := new(bytes.Buffer)
 
 	if err = wbt.Execute(buf, *web); err != nil {
