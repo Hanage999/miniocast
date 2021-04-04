@@ -108,7 +108,7 @@ func (pref *PodcastPref) webItemsFromInfo(fInfos FileInfos) (newItems []*WebItem
 		if id != 0 {
 			idst = " 第" + strconv.Itoa(id) + "回"
 		} else if pref.Serial == true {
-			idst = " 第" + strconv.Itoa(lastID+len(fInfos)-i) + "回"
+			idst = " 第" + strconv.Itoa(lastID-i) + "回"
 		}
 		item.Title = title + idst
 		item.FileURL = pref.Link + strings.TrimLeft(info.Key, pref.Folder)
