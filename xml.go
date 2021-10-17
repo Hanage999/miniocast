@@ -43,8 +43,6 @@ func (pref *PodcastPref) UpdateRSS(infos FileInfos, ct *minio.Client) {
 	if err := pref.uploadRSS(ct, rss); err != nil {
 		log.Printf("info: feed.rssのアップロードに失敗しました：%s", err)
 	}
-
-	return
 }
 
 // newRSS は、Podcast構造体を初期化する
@@ -121,8 +119,8 @@ func (pref *PodcastPref) itemsFromInfo(fInfos FileInfos) (items []podcast.Item, 
 		item.ISubtitle = sub
 		if id != 0 {
 			idst = " 第" + strconv.Itoa(id) + "回"
-		} else if pref.Serial == true {
-			idst = " 第" + strconv.Itoa(lastID-i) + "回"
+		} else if pref.Serial > 0 {
+			idst = " 第" + strconv.Itoa(lastID+pref.Serial-1-i) + "回"
 		}
 		item.Title = title + idst
 		url := pref.Link + strings.TrimLeft(info.Key, pref.Folder)

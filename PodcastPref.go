@@ -10,7 +10,7 @@ type PodcastPref struct {
 	Link          string
 	Bucket        string
 	Folder        string
-	Serial        bool
+	Serial        int
 	Active        bool
 	SavePlayState bool
 }

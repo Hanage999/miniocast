@@ -16,7 +16,7 @@ Podcasts:
         Description: Podcastの簡単な説明
         Bucket: bucketname
         Folder: foldername
-        Serial: false   # タイトルに自動連番をつけるならtrue
+        Serial: 0       # タイトルに自動連番をつけるなら、初回の番号。つけないなら0
         Active: true    # このフォルダを更新対象にするならtrue
 
     -   Title: タイトル2
@@ -26,5 +26,5 @@ Podcasts:
         Description: Podcastの簡単な説明2
         Bucket: bucketname2
         Folder: foldername2
-        Serial: false
+        Serial: 0
         Active: true

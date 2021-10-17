@@ -8,7 +8,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/eduncan911/podcast"
 
@@ -19,10 +18,7 @@ import (
 )
 
 var (
-	version       = "1"
-	revision      = "0"
-	maxRetry      = 5
-	retryInterval = time.Duration(5) * time.Second
+	version = "1"
 )
 
 // Initialize は、設定ファイルを読み込んで初期化する

@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/minio/minio-go/v7"
-	"golang.org/x/net/html"
 )
 
 //go:embed templates/web.html.tmpl
@@ -58,8 +57,6 @@ func (pref *PodcastPref) UpdateWeb(infos FileInfos, ct *minio.Client) {
 	if err := pref.uploadWeb(ct, &web); err != nil {
 		log.Printf("info: index.htmlのアップロードに失敗しました：%s", err)
 	}
-
-	return
 }
 
 // newWeb は、webデータを初期化する
@@ -70,25 +67,6 @@ func (pref *PodcastPref) newWeb() (web Web) {
 	web.Description = pref.Description
 	web.Link = pref.Link
 	web.SavePlayState = pref.SavePlayState
-	return
-}
-
-func itemFromNode(n *html.Node) (item WebItem) {
-	for _, a := range n.Attr {
-		if a.Key == "data-timestamp" {
-			item.PubDateFormatted = a.Val
-		}
-	}
-	t := n.FirstChild.NextSibling
-	for _, a := range t.Attr {
-		if a.Key == "href" {
-			item.FileURL = a.Val
-		}
-	}
-	item.Title = t.FirstChild.Data
-	d := t.NextSibling.NextSibling
-	item.Subtitle = d.FirstChild.Data
-
 	return
 }
 
@@ -107,8 +85,8 @@ func (pref *PodcastPref) webItemsFromInfo(fInfos FileInfos) (newItems []*WebItem
 		item.Subtitle = sub
 		if id != 0 {
 			idst = " 第" + strconv.Itoa(id) + "回"
-		} else if pref.Serial == true {
-			idst = " 第" + strconv.Itoa(lastID-i) + "回"
+		} else if pref.Serial > 0 {
+			idst = " 第" + strconv.Itoa(lastID+pref.Serial-1-i) + "回"
 		}
 		item.Title = title + idst
 		item.FileURL = pref.Link + strings.TrimLeft(info.Key, pref.Folder)
