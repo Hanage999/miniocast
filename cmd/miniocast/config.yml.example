@@ -1,8 +1,10 @@
 Storage:  # クラウドストレージ接続のための情報（環境に応じて要変更）
-    Server: minio.example.com
+    Server: minio.example.com   # クライアントがアクセスするストレージサーバ
+    Endpoint: minio.example.com # そのサーバのAPIエンドポイント
     AccessKey: *************
     SecretKey: *****************
-    HTTPS: true         # ストレージにhttpsでアクセスする場合はtrue
+    HTTPS: true         # クライアントがストレージにhttpsでアクセスする場合はtrue
+    SecureEndpoint: true    # APIエンドポイントへのSSLアクセス
     BucketAsVirtualHost: false      # trueで、バケット名をサブドメインとしてアクセス（S3の新デフォルト）
 
 SavePlayState: false    # trueで、index.htmlの各エピソードの再生状態を

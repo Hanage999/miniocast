@@ -73,9 +73,10 @@ func Initialize() (casts []*PodcastPref, ct *minio.Client, err error) {
 	}
 
 	// クラウドストレージクライアントの生成
-	ct, err = minio.New(cred["server"], &minio.Options{
+	se := cred["secureendpoint"] == "true"
+	ct, err = minio.New(cred["endpoint"], &minio.Options{
 		Creds:  credentials.NewStaticV4(cred["accesskey"], cred["secretkey"], ""),
-		Secure: true,
+		Secure: se,
 	})
 	if err != nil {
 		log.Printf("alert: クラウドストレージクライアントが生成できませんでした：%s", err)
