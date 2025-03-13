@@ -1,33 +1,66 @@
 # miniocast
 
-Amazon S3 互換のクラウドストレージ、MinIO のバケットを Podcast サーバーにしてしまおうという寸法です。
+[![en](https://img.shields.io/badge/lang-en-red.svg)](https://github.com/Hanage999/miniocast/blob/master/README.md)
+[![ja](https://img.shields.io/badge/lang-ja-green.svg)](https://github.com/Hanage999/miniocast/blob/master/README.ja.md)
 
-## 機能
-+ バケット内のフォルダを１つの Podcast サイトとし、そこに存在する音声ファイルをもとに、同一フォルダ内に自動的に feed.rss と index.html を生成あるいは更新します。同時に複数の Podcast サイトを更新することも可能です。
-+ ファイルの名前をエピソードタイトルとして使います。
-+ ファイル名に含まれている最初の半角スペースを区切りとして認識し、区切りの前をタイトル、後を ISubtitle として登録します。
-+ 区切り以降に「第<半角数字>回」（第023回、第5回など）という文字列が存在する場合は、それを ISubtitle ではなく、エピソード番号として認識します。数字は全角ダメ、絶対。
-+ タイトルにエピソード番号を自動で追加するよう設定することができます（書式：「第~回」）。
+A simple tool to turn your MinIO bucket into a Podcast server. Just add audio files, and miniocast will automatically generate and update the RSS feed and web interface.
 
-## miniocastコマンドの使い方
-1. 下準備1：MinIO のバケットと Podcast ごとのフォルダを作成し、バケットには Read Only ポリシーを適用しておく。
-1. 下準備2：Podcast にしたいフォルダ直下に、配信したい mp3 もしくは m4a ファイルを置く。
-1. 下準備3：Podcast にしたいフォルダ直下に、image.jpg という名前でタイトル画像を設置する。
-1. cmd/miniocast フォルダで go get、go build すると、フォルダに miniocast コマンドができる。
-1. config.yml.example を config.yml にリネームまたはコピーし、バケットとフォルダなどの設定に応じて書き換えるあるいは追記する。
-1. ./miniocast で起動し、index.html と feed.rss を生成する。以後 Podcast のフォルダ内容を変更するたびに起動し、index.html と feed.rss を更新する。
+## Features
 
-## 作成したPodcastの利用方法
+- Use folders in your MinIO bucket as Podcast sites.
+- Automatically detects audio files (mp3, m4a, m4b) and generates/updates RSS (`feed.rss`) and web page (`index.html`).
+- File names are directly used as episode titles.
+- A half-width space in file names splits the title and subtitle.
+- Automatically detects episode numbers formatted as "第XX回" (only half-width digits).
+- Saves playback state (position and speed) in the browser's local storage.
 
-1. 作成した Podcast は iTunes ストア等で検索しても表示されないので、お使いのアプリに RSS フィードの URL：  
-**{minioバケットのurl}/{フォルダ名}/feed.rss** を直接登録してください。
-1. **{minioバケットのurl}/{フォルダ名}/index.html** にアクセスすると、シンプルな Web インターフェイスを表示することができます。各エピソードのタイトルをクリックすると、プレイヤーが表示されたり隠れたりします。注意：MinIO はウェブサーバではないので、index.html というファイルまで指定しないとサイトが表示されません。
-1. index.html は、config.yml で SavePlayState を true にすることにより、ブラウザを閉じたり再読み込みしても各エピソードの再生位置と再生速度を保存することができます。再生状態が保存されているエピソードはタイトルが緑色で表示されます。一時停止中にシークバーで再生位置をゼロに戻せば、保存状態をリセットできます。
+## Setup
 
-## Amazon S3 では
+1. Create a MinIO bucket and a folder for your podcast, and apply a Read Only policy to the bucket.
+2. Place audio files (mp3, m4a) and a podcast image (`image.jpg`) in the folder.
+3. Build miniocast by running the following commands inside `cmd/miniocast`:
 
-……試しておりません。
+```bash
+cd cmd/miniocast
+go get
+go build
+```
 
-## 謝辞
+4. Copy `config.yml.example` to `config.yml` and edit the settings according to your environment.
 
-Webインターフェイスのデザインは、[Turing Complete FM](https://turingcomplete.fm)の[Rui Ueyama](https://twitter.com/rui314)さんが気前よく公開してくださっている JavaScript と CSS を使わせていただきました。
+```yaml
+Storage:
+  Server: minio.example.com
+  Endpoint: minio.example.com
+  AccessKey: YOUR_ACCESS_KEY
+  SecretKey: YOUR_SECRET_KEY
+  HTTPS: true
+  SecureEndpoint: true
+  BucketAsVirtualHost: false
+
+SavePlayState: true
+
+Podcasts:
+  - Title: Your Podcast Title
+    Subtitle: Optional subtitle
+    Author: Author Name
+    Email: author@example.com
+    Description: Description of your podcast
+    Bucket: bucket-name
+    Folder: folder-name
+    Serial: 0
+    Active: true
+```
+
+5. Run `./miniocast` to generate the RSS feed and web interface.
+
+## How to Use Your Podcast
+
+Register the RSS feed URL directly in your podcast app:
+
+- RSS Feed URL: `{MinIO_bucket_URL}/{folder_name}/feed.rss`
+- Web Interface URL: `{MinIO_bucket_URL}/{folder_name}/index.html`
+
+## Acknowledgments
+
+The web interface design utilizes JavaScript and CSS generously provided by [Rui Ueyama](https://x.com/rui314) of [Turing Complete FM](https://turingcomplete.fm). We sincerely appreciate his open and generous contribution.
